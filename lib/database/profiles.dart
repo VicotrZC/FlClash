@@ -17,6 +17,19 @@ class Profiles extends Table {
 
   TextColumn get ageSecretKey => text().nullable()();
 
+  /// 订阅请求使用的 User-Agent；为空时用全局 UA。
+  TextColumn get userAgent => text().nullable()();
+
+  /// 订阅请求附带的额外请求头。
+  ///
+  /// 这里给的是**数据库级**默认值，不是 Drift 的 clientDefault：后者只作用于
+  /// insert，全新安装建出来的表仍是 `NOT NULL` 且无默认值，于是任何绕过
+  /// companion 的裸 INSERT 都会失败（升级上来的库因为迁移里写了 DEFAULT '{}'
+  /// 反而不会）。两边必须一致。
+  TextColumn get customHeaders => text()
+      .map(const StringMapConverter())
+      .withDefault(const Constant('{}'))();
+
   DateTimeColumn get lastUpdateDate => dateTime().nullable()();
 
   TextColumn get extendType => textEnum<ExtendType>()();
@@ -161,6 +174,8 @@ extension RawProfilExt on RawProfile {
       currentGroupName: currentGroupName,
       url: url,
       ageSecretKey: ageSecretKey ?? '',
+      userAgent: userAgent,
+      customHeaders: customHeaders,
       lastUpdateDate: lastUpdateDate,
       autoUpdateDuration: Duration(milliseconds: autoUpdateDurationMillis),
       subscriptionInfo: subscriptionInfo,
@@ -185,6 +200,8 @@ extension ProfilesCompanionExt on Profile {
       currentGroupName: Value(currentGroupName),
       url: url,
       ageSecretKey: Value(ageSecretKey.isEmpty ? null : ageSecretKey),
+      userAgent: Value(userAgent),
+      customHeaders: Value(customHeaders),
       lastUpdateDate: Value(lastUpdateDate),
       autoUpdateDurationMillis: autoUpdateDuration.inMilliseconds,
       subscriptionInfo: Value(subscriptionInfo),

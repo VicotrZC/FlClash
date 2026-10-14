@@ -113,32 +113,39 @@ class ApplicationState extends ConsumerState<Application> {
   }
 
   void _initLink() {
-    linkManager.initAppLinksListen((url) async {
-      unawaited(window?.show());
-      final message = currentAppLocalizations.createProfileFromUrlTip(url);
-      final parts = message.split(url);
-      final res = await dialogs.showMessage(
-        title: currentAppLocalizations.addProfile,
-        message: TextSpan(
-          children: [
-            TextSpan(text: parts.first),
-            TextSpan(
-              text: url,
-              style: TextStyle(
-                color: context.colorScheme.primary,
-                decoration: TextDecoration.underline,
-                decorationColor: context.colorScheme.primary,
+    linkManager.initAppLinksListen(
+      (url) async {
+        unawaited(window?.show());
+        final message = currentAppLocalizations.createProfileFromUrlTip(url);
+        final parts = message.split(url);
+        final res = await dialogs.showMessage(
+          title: currentAppLocalizations.addProfile,
+          message: TextSpan(
+            children: [
+              TextSpan(text: parts.first),
+              TextSpan(
+                text: url,
+                style: TextStyle(
+                  color: context.colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: context.colorScheme.primary,
+                ),
               ),
-            ),
-            if (parts.length > 1) TextSpan(text: parts.last),
-          ],
-        ),
-      );
-      if (res != true) return;
-      unawaited(
-        ref.read(profilesActionProvider.notifier).addProfileFromLink(url),
-      );
-    });
+              if (parts.length > 1) TextSpan(text: parts.last),
+            ],
+          ),
+        );
+        if (res != true) return;
+        unawaited(
+          ref.read(profilesActionProvider.notifier).addProfileFromLink(url),
+        );
+      },
+      // 快捷磁贴长按会拉起 flclash://proxies，直接跳到节点列表。
+      onOpenPage: (pageLabel) {
+        unawaited(window?.show());
+        ref.read(currentPageLabelProvider.notifier).toPage(pageLabel);
+      },
+    );
   }
 
   void _autoUpdateProfilesTask() {

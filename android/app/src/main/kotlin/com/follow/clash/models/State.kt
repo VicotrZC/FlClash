@@ -10,6 +10,8 @@ data class SharedState(
         "Local network permission denied: using the gvisor stack, LAN is unreachable.",
     val crashlytics: Boolean = true,
     val currentProfileName: String = "FlClash",
+    /** 当前生效的节点名，用于快捷磁贴；未选择节点时为 null。 */
+    val currentNodeName: String? = null,
     val stopText: String = "Stop",
     val onlyStatisticsProxy: Boolean = false,
     val showStopAction: Boolean = true,

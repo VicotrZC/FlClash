@@ -9,6 +9,10 @@ object ServiceState {
 
     val runState = machine.runState
 
+    /** 快捷磁贴展示用：当前节点名与当前配置名。 */
+    val currentNodeName = machine.currentNodeName
+    val currentProfileName = machine.currentProfileName
+
     val isRunRequested: Boolean
         get() = machine.isRunRequested
 

@@ -13,7 +13,13 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 class Request {
   late final Dio dio;
   late final Dio _clashDio;
-  String? userAgent;
+
+  /// 带自定义 User-Agent 的下载客户端，按 UA 缓存复用。
+  ///
+  /// 不能用 dio 的 header 覆盖 UA：IOHttpClientAdapter 在连接时才设置
+  /// `client.userAgent = globalState.ua`，会盖掉请求头上的 User-Agent。
+  /// 所以必须给订阅单独一个 HttpClient。
+  final Map<String, Dio> _userAgentDio = {};
 
   ProviderReader? _read;
 
@@ -23,12 +29,16 @@ class Request {
 
   Request() {
     dio = Dio(BaseOptions(headers: {'User-Agent': browserUa}));
-    _clashDio = Dio();
-    _clashDio.httpClientAdapter = IOHttpClientAdapter(
+    _clashDio = _createDio();
+  }
+
+  Dio _createDio({String? userAgent}) {
+    final clashDio = Dio();
+    clashDio.httpClientAdapter = IOHttpClientAdapter(
       createHttpClient: () {
         final client = HttpClient();
         client.findProxy = (Uri uri) {
-          client.userAgent = globalState.ua;
+          client.userAgent = userAgent ?? globalState.ua;
           final read = _read;
           if (read == null) {
             return 'DIRECT';
@@ -38,15 +48,35 @@ class Request {
         return client;
       },
     );
+    return clashDio;
   }
 
-  Future<Response<T>> _download<T>(String url, ResponseType responseType) {
+  Dio _dioForUserAgent(String? userAgent) {
+    if (userAgent == null || userAgent.isEmpty) {
+      return _clashDio;
+    }
+    return _userAgentDio.putIfAbsent(
+      userAgent,
+      () => _createDio(userAgent: userAgent),
+    );
+  }
+
+  Future<Response<T>> _download<T>(
+    String url,
+    ResponseType responseType, {
+    String? userAgent,
+    Map<String, String>? headers,
+  }) {
     final target = downloadTarget(url);
     final cancelToken = CancelToken();
-    return _clashDio
+    final effectiveHeaders = <String, Object>{...target.headers, ...?headers};
+    return _dioForUserAgent(userAgent)
         .getUri<T>(
           target.uri,
-          options: Options(responseType: responseType, headers: target.headers),
+          options: Options(
+            responseType: responseType,
+            headers: effectiveHeaders,
+          ),
           cancelToken: cancelToken,
         )
         .timeout(
@@ -61,9 +91,18 @@ class Request {
         );
   }
 
-  Future<Response<Uint8List>> getFileResponseForUrl(String url) async {
+  Future<Response<Uint8List>> getFileResponseForUrl(
+    String url, {
+    String? userAgent,
+    Map<String, String>? headers,
+  }) async {
     try {
-      return await _download<Uint8List>(url, ResponseType.bytes);
+      return await _download<Uint8List>(
+        url,
+        ResponseType.bytes,
+        userAgent: userAgent,
+        headers: headers,
+      );
     } catch (e) {
       commonPrint.log(
         'getFileResponseForUrl error ${compactError(e)}',

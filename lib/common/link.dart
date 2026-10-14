@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
+import 'package:fl_clash/enum/enum.dart';
 import 'package:flutter/foundation.dart';
 
 import 'print.dart';
@@ -8,6 +9,22 @@ import 'protocol.dart';
 import 'string.dart';
 
 typedef InstallConfigCallBack = void Function(String url);
+
+typedef OpenPageCallBack = void Function(PageLabel pageLabel);
+
+/// 站内跳转用的 host 名，例如 `flclash://proxies`。
+/// 与 `install-config` 这类功能性 host 区分开：只有能映射到 [PageLabel] 的才跳页。
+PageLabel? _pageLabelFromUri(Uri uri) {
+  if (!protocolSchemes.contains(uri.scheme)) {
+    return null;
+  }
+  for (final label in PageLabel.values) {
+    if (label.name == uri.host) {
+      return label;
+    }
+  }
+  return null;
+}
 
 String? profileUrlFromQrCodes(Iterable<String?> values) {
   for (final value in values) {
@@ -60,24 +77,34 @@ class LinkManager {
   }
 
   Future<void> initAppLinksListen(
-    Function(String url) installConfigCallBack,
-  ) async {
+    Function(String url) installConfigCallBack, {
+    OpenPageCallBack? onOpenPage,
+  }) async {
     destroy();
     subscription = uriLinkStream().listen((uri) {
-      _handle(uri, installConfigCallBack);
+      _handle(uri, installConfigCallBack, onOpenPage);
     });
     final pending = _pendingUri;
     _pendingUri = null;
     if (pending != null) {
-      _handle(pending, installConfigCallBack);
+      _handle(pending, installConfigCallBack, onOpenPage);
     }
   }
 
-  void _handle(Uri uri, Function(String url) installConfigCallBack) {
+  void _handle(
+    Uri uri,
+    Function(String url) installConfigCallBack,
+    OpenPageCallBack? onOpenPage,
+  ) {
     commonPrint.log('onAppLink: $uri');
     final url = _installConfigUrl(uri);
     if (url != null) {
       installConfigCallBack(url);
+      return;
+    }
+    final pageLabel = _pageLabelFromUri(uri);
+    if (pageLabel != null) {
+      onOpenPage?.call(pageLabel);
     }
   }
 

@@ -91,6 +91,21 @@ void _downgradeToV19(Database raw) {
   raw.execute('PRAGMA user_version = 19');
 }
 
+/// Schema version 20 had no `user_agent` / `custom_headers` on `profiles`.
+///
+/// 两列只在存在时才删：这个 helper 也会从更早的版本链上被调用，
+/// 那时 `profiles` 还没有这两列。
+void _downgradeToV20(Database raw) {
+  final columns = _columnsOf(raw, 'profiles');
+  if (columns.contains('user_agent')) {
+    raw.execute('ALTER TABLE profiles DROP COLUMN user_agent');
+  }
+  if (columns.contains('custom_headers')) {
+    raw.execute('ALTER TABLE profiles DROP COLUMN custom_headers');
+  }
+  raw.execute('PRAGMA user_version = 20');
+}
+
 /// Schema version 18 had no `age_secret_key` on `profiles`.
 void _downgradeToV18(Database raw) {
   _downgradeToV19(raw);
@@ -274,7 +289,7 @@ void main() {
 
     await openAndMigrate();
 
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
   });
 
   test('the v3 upgrade adds match_target to profiles', () async {
@@ -284,7 +299,7 @@ void main() {
     await openAndMigrate();
 
     expect(_columnsOf(raw, 'profiles'), contains('match_target'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
   });
 
   test('the v4 upgrade adds url to scripts', () async {
@@ -298,7 +313,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_columnsOf(raw, 'scripts'), contains('url'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     final scripts = await database.scriptsDao.query().get();
     expect(scripts.single.label, 'Local');
     expect(scripts.single.url, isNull);
@@ -315,7 +330,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_columnsOf(raw, 'scripts'), contains('order'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     final scripts = await database.scriptsDao.query().get();
     expect(scripts.map((item) => item.label), ['First', 'Second']);
     expect(scripts.map((item) => item.order), [null, null]);
@@ -330,7 +345,7 @@ void main() {
       await openAndMigrate();
 
       expect(_columnsOf(raw, 'profiles'), contains('match_target'));
-      expect(_userVersion(raw), 20);
+      expect(_userVersion(raw), 21);
     },
   );
 
@@ -341,7 +356,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_hasTable(raw, 'clash_providers'), isTrue);
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(await database.clashProvidersDao.query().get(), isEmpty);
   });
 
@@ -354,7 +369,7 @@ void main() {
       await openAndMigrate();
 
       expect(_hasTable(raw, 'clash_providers'), isTrue);
-      expect(_userVersion(raw), 20);
+      expect(_userVersion(raw), 21);
     },
   );
 
@@ -365,7 +380,7 @@ void main() {
     await openAndMigrate();
 
     expect(_columnsOf(raw, 'proxy_groups'), contains('definition'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
   });
 
   test('a v6 user_version on the current proxy_groups still opens', () async {
@@ -375,7 +390,7 @@ void main() {
     await openAndMigrate();
 
     expect(_columnsOf(raw, 'proxy_groups'), contains('definition'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
   });
 
   test(
@@ -399,7 +414,7 @@ void main() {
         _columnsOf(raw, 'clash_providers'),
         isNot(anyOf(contains('interval'), contains('filter'))),
       );
-      expect(_userVersion(raw), 20);
+      expect(_userVersion(raw), 21);
       expect(
         (await database.clashProvidersDao.query().get()).single.label,
         'Kept',
@@ -506,7 +521,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_hasTable(raw, 'custom_proxies'), isTrue);
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(await database.customProxiesDao.query().get(), isEmpty);
   });
 
@@ -517,7 +532,7 @@ void main() {
 
     expect(_columnsOf(raw, 'proxy_groups'), contains('definition'));
     expect(_columnsOf(raw, 'proxy_groups'), isNot(contains('url')));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
   });
 
   test('the v17 upgrade renames overwrite_type and adds overrides', () async {
@@ -587,7 +602,7 @@ void main() {
 
     final database = await openAndMigrate();
 
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(_hasTable(raw, 'profile_rule_mapping'), isFalse);
     expect(
       {
@@ -748,7 +763,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_hasTable(raw, 'proxy_dialers'), isTrue);
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(await database.proxyDialersDao.query(1).get(), isEmpty);
   });
 
@@ -760,7 +775,7 @@ void main() {
 
     expect(_hasTable(raw, 'icon_sets'), isTrue);
     expect(_columnsOf(raw, 'icon_sets'), contains('last_update_time'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(await database.iconSetsDao.query().get(), isEmpty);
   });
 
@@ -773,7 +788,7 @@ void main() {
       final database = await openAndMigrate();
 
       expect(_columnsOf(raw, 'icon_sets'), contains('last_update_time'));
-      expect(_userVersion(raw), 20);
+      expect(_userVersion(raw), 21);
       expect(await database.iconSetsDao.query().get(), isEmpty);
     },
   );
@@ -854,7 +869,7 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_columnsOf(raw, 'profiles'), contains('age_secret_key'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(
       (await database.profilesDao.query().get()).single.ageSecretKey,
       isEmpty,
@@ -872,12 +887,39 @@ void main() {
     final database = await openAndMigrate();
 
     expect(_columnsOf(raw, 'custom_proxies'), contains('empty_options'));
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(
       (await database.customProxiesDao.query().get()).single.emptyOptions,
       isEmpty,
     );
   });
+
+  test(
+    'the v21 upgrade adds user_agent and custom_headers to profiles',
+    () async {
+      _downgradeToV20(raw);
+      // 先放一行旧数据：ADD COLUMN ... NOT NULL 对已有数据的表才是真正的考验，
+      // 空表会掩盖「缺 DEFAULT」这个错误。
+      raw.execute(
+        'INSERT INTO profiles (id, type, label, url, extend_type, '
+        'auto_update_duration_millis, auto_update, selected_map, unfold_set) '
+        "VALUES (1, 'url', 'Legacy', 'https://example.test/sub', 'standard', 0, 1, '{}', '[]')",
+      );
+      expect(_columnsOf(raw, 'profiles'), isNot(contains('user_agent')));
+      expect(_columnsOf(raw, 'profiles'), isNot(contains('custom_headers')));
+
+      final database = await openAndMigrate();
+
+      expect(_columnsOf(raw, 'profiles'), contains('user_agent'));
+      expect(_columnsOf(raw, 'profiles'), contains('custom_headers'));
+      expect(_userVersion(raw), 21);
+      // 旧行必须仍可读，新列给出安全默认值
+      final profile = (await database.profilesDao.query().get()).single;
+      expect(profile.label, 'Legacy');
+      expect(profile.userAgent, isNull);
+      expect(profile.customHeaders, isEmpty);
+    },
+  );
 
   test(
     'a v17 user_version with definition already present still opens',
@@ -895,7 +937,7 @@ void main() {
 
       final database = await openAndMigrate();
 
-      expect(_userVersion(raw), 20);
+      expect(_userVersion(raw), 21);
       expect(
         (await database.proxyGroupsDao.query(3).get()).single.hidden,
         isTrue,
@@ -908,7 +950,7 @@ void main() {
 
     final database = await openAndMigrate();
 
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(await database.customSelect('SELECT * FROM rules').get(), isEmpty);
   });
 
@@ -918,7 +960,7 @@ void main() {
     await openAndMigrate();
 
     expect(_columnsOf(raw, 'rules'), before);
-    expect(_userVersion(raw), 20);
+    expect(_userVersion(raw), 21);
     expect(_hasTable(raw, 'proxy_groups'), isTrue);
   });
 }

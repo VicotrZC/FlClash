@@ -173,6 +173,7 @@ void main() {
           autoUpdate: true,
           selectedMap: const {'Proxy': 'DIRECT'},
           unfoldSet: const {'Proxy'},
+          customHeaders: const Value({'X-Client-Encrypt': 'v1'}),
         ),
       );
       await database.managers.scripts.create(

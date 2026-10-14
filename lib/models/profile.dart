@@ -69,6 +69,12 @@ abstract class Profile with _$Profile {
     String? currentGroupName,
     @Default('') String url,
     @Default('') String ageSecretKey,
+
+    /// 订阅请求使用的 User-Agent；为空时用全局 UA。
+    String? userAgent,
+
+    /// 订阅请求附带的额外请求头（部分机场以此做访问控制）。
+    @Default({}) Map<String, String> customHeaders,
     DateTime? lastUpdateDate,
     required Duration autoUpdateDuration,
     SubscriptionInfo? subscriptionInfo,
@@ -174,19 +180,31 @@ extension ProfileExtension on Profile {
   }
 
   Future<Profile> update({required ValidateConfig validate}) async {
-    final response = await request.getFileResponseForUrl(url);
+    final response = await request.getFileResponseForUrl(
+      url,
+      userAgent: userAgent,
+      headers: customHeaders,
+    );
     final disposition = response.headers.value('content-disposition');
     final userinfo = response.headers.value('subscription-userinfo');
+    var data = response.data ?? Uint8List(0);
+    // 机场可能对正文加密（响应头 X-Encrypted: 1），先解密再交给 mihomo。
+    data = SubscriptionCrypto.decryptIfNeeded(
+      data,
+      response.headers.value(SubscriptionCrypto.encryptedHeaderValue),
+    );
+    // 部分机场下发 sing-box JSON；mihomo 读不懂，先转成 Clash YAML。
+    final converted = singBoxJsonToClashYaml(data);
+    if (converted != null) {
+      data = converted;
+    }
     return copyWith(
       label: label.takeFirstValid([
         getFileNameForDisposition(disposition),
         defaultLabel,
       ]),
       subscriptionInfo: SubscriptionInfo.formHString(userinfo),
-    ).saveFile(
-      decompressUnlabeled(response.data ?? Uint8List(0)),
-      validate: validate,
-    );
+    ).saveFile(decompressUnlabeled(data), validate: validate);
   }
 
   Future<Profile> saveFile(

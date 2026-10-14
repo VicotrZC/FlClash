@@ -196,12 +196,14 @@ SharedState sharedState(Ref ref) {
     ),
   );
   final currentProfileName = currentProfile.label;
+  final currentNodeName = ref.watch(currentNodeNameProvider);
   final selectedMap = currentProfile.selectedMap;
   final onlyStatisticsProxy = appSetting.onlyStatisticsProxy;
   final crashlytics = appSetting.crashlytics;
   final testUrl = appSetting.testUrl;
   return SharedState(
     currentProfileName: currentProfileName,
+    currentNodeName: currentNodeName,
     onlyStatisticsProxy: onlyStatisticsProxy,
     showStopAction: appSetting.showStopAction,
     stopText: currentAppLocalizations.stop,

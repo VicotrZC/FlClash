@@ -68,6 +68,12 @@ dependencies:
   flutter_cache_manager: ^3.4.5
   crypto: ^3.0.7
   yaml: ^3.1.4
+  # 订阅正文解密（AES-256-CBC）与 sing-box JSON -> Clash YAML 生成
+  pointycastle: ^3.9.1
+  yaml_writer:
+    git:
+      url: https://github.com/chen08209/yaml_writer
+      ref: 79c78a44ec9c2f5f5f97da1a65610c6fb2ead8b3
   super_sliver_list: ^0.4.1
   drift: ^2.35.1
   drift_flutter: ^0.3.1

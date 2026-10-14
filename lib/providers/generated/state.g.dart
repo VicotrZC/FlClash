@@ -446,7 +446,7 @@ final class SharedStateProvider
   }
 }
 
-String _$sharedStateHash() => r'1aeb51f6a7b6082f5df2a1942f45ec6c2abce606';
+String _$sharedStateHash() => r'14d79dd2bf2156351bde92a7282f50c0bc735539';
 
 @ProviderFor(vpnRouteAddress)
 final vpnRouteAddressProvider = VpnRouteAddressProvider._();
@@ -2860,6 +2860,61 @@ final class SelectedProxyNameFamily extends $Family
   @override
   String toString() => r'selectedProxyNameProvider';
 }
+
+/// 当前实际生效的节点名，用于 Android 快捷磁贴。
+///
+/// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+/// 全都没有时返回 null，由调用方决定回退显示什么。
+
+@ProviderFor(currentNodeName)
+final currentNodeNameProvider = CurrentNodeNameProvider._();
+
+/// 当前实际生效的节点名，用于 Android 快捷磁贴。
+///
+/// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+/// 全都没有时返回 null，由调用方决定回退显示什么。
+
+final class CurrentNodeNameProvider
+    extends $FunctionalProvider<String?, String?, String?>
+    with $Provider<String?> {
+  /// 当前实际生效的节点名，用于 Android 快捷磁贴。
+  ///
+  /// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+  /// 全都没有时返回 null，由调用方决定回退显示什么。
+  CurrentNodeNameProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentNodeNameProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentNodeNameHash();
+
+  @$internal
+  @override
+  $ProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String? create(Ref ref) {
+    return currentNodeName(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$currentNodeNameHash() => r'515971242f16dd3b8c60ecc1a1c0a70647c9baf1';
 
 @ProviderFor(proxyDesc)
 final proxyDescProvider = ProxyDescFamily._();

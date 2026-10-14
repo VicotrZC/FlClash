@@ -28,14 +28,16 @@ void main() {
       autoUpdate: true,
       selectedMap: const {'Select': 'DIRECT'},
       unfoldSet: const {'Select'},
+      userAgent: 'vpncheap-android/2.3.23',
+      customHeaders: const {'X-Client-Encrypt': 'v1'},
       order: 3,
       overrides: const ProfileOverrides(
         dnsOverrideKeys: {DnsOverrideKey.nameserver},
       ),
     );
 
-    expect(profile.toColumns(true), hasLength(17));
-    expect(profile.toCompanion(true).toColumns(true), hasLength(17));
+    expect(profile.toColumns(true), hasLength(19));
+    expect(profile.toCompanion(true).toColumns(true), hasLength(19));
     expect(RawProfile.fromJson(profile.toJson()).toJson(), profile.toJson());
     expect(profile.copyWith(label: 'Next').label, 'Next');
     expect(
@@ -64,10 +66,11 @@ void main() {
       autoUpdate: false,
       selectedMap: {},
       unfoldSet: {},
+      customHeaders: {},
     );
-    expect(emptyProfile.toColumns(true), hasLength(9));
-    expect(emptyProfile.toColumns(false), hasLength(17));
-    expect(emptyProfile.toCompanion(true).toColumns(true), hasLength(9));
+    expect(emptyProfile.toColumns(true), hasLength(10));
+    expect(emptyProfile.toColumns(false), hasLength(19));
+    expect(emptyProfile.toCompanion(true).toColumns(true), hasLength(10));
 
     final insertedProfile = ProfilesCompanion.insert(
       type: ProfileType.file,
@@ -78,8 +81,9 @@ void main() {
       autoUpdate: true,
       selectedMap: const {},
       unfoldSet: const {},
+      customHeaders: const Value({}),
     ).copyWith(id: const Value(8), order: const Value(1));
-    expect(insertedProfile.toColumns(true), hasLength(10));
+    expect(insertedProfile.toColumns(true), hasLength(11));
     expect(insertedProfile.toString(), contains('Inserted'));
     expect(
       ProfilesCompanion.custom(
@@ -98,10 +102,12 @@ void main() {
         autoUpdate: const Variable(true),
         selectedMap: const Variable('{}'),
         unfoldSet: const Variable('[]'),
+        userAgent: const Variable('ua'),
+        customHeaders: const Variable('{}'),
         order: const Variable(1),
         overrides: const Variable('{}'),
       ).toColumns(false),
-      hasLength(17),
+      hasLength(19),
     );
 
     final script = RawScript(id: 2, label: 'Script', lastUpdateTime: date);

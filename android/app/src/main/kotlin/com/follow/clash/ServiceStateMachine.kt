@@ -51,6 +51,20 @@ internal class ServiceStateMachine(private val host: ServiceStateHost) {
     @Volatile
     private var sharedState = SharedState()
 
+    /**
+     * 快捷磁贴要显示「当前节点 + 当前配置」，所以把这两项发布成 flow。
+     *
+     * 初始值取自**持久化偏好**：磁贴与 App 同进程，但 App 被划掉后 Flutter 引擎
+     * 就不在了，不能再指望它推状态。用持久化值初始化，磁贴在任何时刻都能拿到
+     * 真实的节点名，而不是默认名。
+     */
+    private val mutableCurrentNodeName = MutableStateFlow(host.loadSharedState().currentNodeName)
+    private val mutableCurrentProfileName =
+        MutableStateFlow(host.loadSharedState().currentProfileName)
+
+    val currentNodeName = mutableCurrentNodeName.asStateFlow()
+    val currentProfileName = mutableCurrentProfileName.asStateFlow()
+
     @Volatile
     private var pendingVpnPreparation: (() -> Unit)? = null
 
@@ -134,8 +148,18 @@ internal class ServiceStateMachine(private val host: ServiceStateHost) {
     }
 
     fun syncSharedState(state: SharedState) {
-        sharedState = state
+        publishSharedState(state)
         applySharedState()
+    }
+
+    /**
+     * 唯一写入 sharedState 的入口：节点名/配置名这两个 flow 必须与它同步更新，
+     * 否则磁贴会停在旧值。所有赋值点都走这里。
+     */
+    private fun publishSharedState(state: SharedState) {
+        sharedState = state
+        mutableCurrentNodeName.value = state.currentNodeName
+        mutableCurrentProfileName.value = state.currentProfileName
     }
 
     // No new request for a settled run: one refused at a prompt would take the service down.
@@ -146,7 +170,7 @@ internal class ServiceStateMachine(private val host: ServiceStateHost) {
     // toggles this start off instead of racing a second setup against it.
     private suspend fun startFromPreferences() {
         val request = createRequest(running = true)
-        sharedState = host.loadSharedState()
+        publishSharedState(host.loadSharedState())
         if (sharedState.setupParams == null || sharedState.vpnOptions == null) {
             host.showToast(MISSING_CONFIG_MESSAGE)
             abandon(request)

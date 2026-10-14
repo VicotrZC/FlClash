@@ -280,6 +280,37 @@ String? selectedProxyName(Ref ref, String groupName) {
   return group?.getCurrentSelectedName(proxyName ?? '');
 }
 
+/// 当前实际生效的节点名，用于 Android 快捷磁贴。
+///
+/// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+/// 全都没有时返回 null，由调用方决定回退显示什么。
+@riverpod
+String? currentNodeName(Ref ref) {
+  final selectedMap = ref.watch(selectedMapProvider);
+  final groups = ref.watch(groupsProvider);
+  if (groups.isEmpty) {
+    return null;
+  }
+  final currentGroupName = ref.watch(
+    currentProfileProvider.select((state) => state?.currentGroupName),
+  );
+  final candidates = [
+    currentGroupName,
+    GroupName.GLOBAL.name,
+  ].whereType<String>();
+  for (final groupName in candidates) {
+    final group = groups.getGroup(groupName);
+    if (group == null) {
+      continue;
+    }
+    final name = group.getCurrentSelectedName(selectedMap[groupName] ?? '');
+    if (name.isNotEmpty) {
+      return name;
+    }
+  }
+  return null;
+}
+
 @riverpod
 String proxyDesc(Ref ref, Proxy proxy) {
   final groupTypeNamesList = GroupType.values.map((e) => e.name).toList();

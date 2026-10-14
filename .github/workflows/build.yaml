@@ -1,3 +1,4 @@
+# vpncheap fork: 启用 Actions 后用于构建带订阅解密与磁贴改动的 APK。
 name: build
 
 on:

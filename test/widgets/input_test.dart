@@ -466,7 +466,13 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
       expect(result, [
-        (label: 'Home', url: 'https://example.com/sub', ageSecretKey: ''),
+        (
+          label: 'Home',
+          url: 'https://example.com/sub',
+          ageSecretKey: '',
+          userAgent: '',
+          customHeaders: '',
+        ),
       ]);
     },
   );
@@ -533,8 +539,20 @@ void main() {
       await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
       expect(result, [
-        (label: '', url: 'https://example.com/a', ageSecretKey: ''),
-        (label: '', url: 'https://example.com/b', ageSecretKey: ''),
+        (
+          label: '',
+          url: 'https://example.com/a',
+          ageSecretKey: '',
+          userAgent: '',
+          customHeaders: '',
+        ),
+        (
+          label: '',
+          url: 'https://example.com/b',
+          ageSecretKey: '',
+          userAgent: '',
+          customHeaders: '',
+        ),
       ]);
     },
   );

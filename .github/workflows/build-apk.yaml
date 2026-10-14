@@ -1,0 +1,136 @@
+name: build-apk
+
+# 上游的 build.yaml 只在 chen08209/FlClash 上打 tag 时才产出安装包
+# （它的 build job 带 `github.repository == 'chen08209/FlClash'` 条件），
+# 所以在 fork 上永远拿不到 APK。这个 workflow 只做一件事：在 fork 里构建 Android APK。
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: '构建哪些 ABI'
+        required: true
+        default: 'android-arm64'
+        type: choice
+        options:
+          - android-arm64
+          - android-arm
+          - android-x64
+          - 'android-arm64,android-arm,android-x64'
+  push:
+    branches:
+      - 'vpncheap*'
+    paths:
+      # 只在这些路径变化时重跑，避免改个文档也触发一次完整构建。
+      - 'lib/**'
+      - 'android/**'
+      - 'core/**'
+      - 'plugins/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'setup.dart'
+      - 'env.json'
+      - '.github/workflows/build-apk.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.6'
+  GO_VERSION: '1.27.1'
+  NDK_VERSION: r28c
+
+jobs:
+  apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+          link-to-sdk: true
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: services/helper
+          cache-directories: .dart_tool/hooks_runner
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # 仓库里没有 keystore 时 build.gradle.kts 会自动回退到 debug 签名，
+      # 所以这一步是可选的：配了 secrets 就出正式签名的包，没配也能出可安装的包。
+      - name: Setup Android signing
+        if: ${{ secrets.KEYSTORE != '' }}
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE" | base64 --decode > android/app/keystore.jks
+          {
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+          } >> android/local.properties
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # env.json 决定 APP_ENV，不写就是 'pre'，App 右上角会出现 PRE 彩带。
+      - name: Write env.json
+        run: echo '{"APP_ENV":"stable"}' > env.json
+
+      # 与上游 setup.dart android 分支一致：dart-define-from-file + split-per-abi。
+      - name: Build APK
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          flutter build apk \
+            --release \
+            --split-per-abi \
+            --dart-define-from-file=env.json
+
+      - name: List artifacts
+        run: ls -lh build/app/outputs/flutter-apk/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: flclash-vpncheap-apk
+          path: build/app/outputs/flutter-apk/*.apk
+          if-no-files-found: error
+          overwrite: true

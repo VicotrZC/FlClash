@@ -100,7 +100,13 @@ class CommonCheckBox extends StatelessWidget {
   }
 }
 
-typedef NamedUrl = ({String label, String url, String ageSecretKey});
+typedef NamedUrl = ({
+  String label,
+  String url,
+  String ageSecretKey,
+  String userAgent,
+  String customHeaders,
+});
 
 /// The url below the name holds the focus, as the one field that must be filled.
 /// Pops a list so a single url and a batch return through the same path.
@@ -115,6 +121,7 @@ class NamedUrlDialog extends StatefulWidget {
   final bool batch;
   final Set<String> existingUrls;
   final bool withAgeSecretKey;
+  final bool withSubscriptionOptions;
 
   const NamedUrlDialog({
     super.key,
@@ -128,6 +135,7 @@ class NamedUrlDialog extends StatefulWidget {
     this.batch = false,
     this.existingUrls = const {},
     this.withAgeSecretKey = false,
+    this.withSubscriptionOptions = false,
   });
 
   @override
@@ -142,7 +150,10 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
   late final TextEditingController _urlController;
   final _ageSecretKeyController = TextEditingController();
   final _batchController = TextEditingController();
+  final _userAgentController = TextEditingController();
+  final _customHeadersController = TextEditingController();
   bool _isBatch = false;
+  bool _showAdvanced = false;
   ParsedInput<String>? _parsed;
 
   bool get _canSubmit {
@@ -184,6 +195,8 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
     _urlController.dispose();
     _ageSecretKeyController.dispose();
     _batchController.dispose();
+    _userAgentController.dispose();
+    _customHeadersController.dispose();
     super.dispose();
   }
 
@@ -211,6 +224,17 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
     return _validateUrl(url);
   }
 
+  /// 逐行校验，报出第一条格式不对的行号（从 1 开始）。
+  ///
+  /// 规则与 CustomHeaders.parse 一致，都放在 CustomHeaders 里以免两处漂移。
+  String? _validateCustomHeaders(String? value) {
+    final line = CustomHeaders.firstInvalidLine(value);
+    if (line == null) {
+      return null;
+    }
+    return context.appLocalizations.customHeadersInvalid('$line');
+  }
+
   void _toggleBatch() {
     setState(() {
       _isBatch = !_isBatch;
@@ -236,7 +260,13 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
     if (_isBatch) {
       Navigator.of(context).pop<List<NamedUrl>>([
         for (final url in _parsed!.entries)
-          (label: '', url: url, ageSecretKey: ''),
+          (
+            label: '',
+            url: url,
+            ageSecretKey: '',
+            userAgent: '',
+            customHeaders: '',
+          ),
       ]);
       return;
     }
@@ -248,6 +278,8 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
         label: _labelController.text.trim(),
         url: _urlController.text.trim(),
         ageSecretKey: _ageSecretKeyController.text.trim(),
+        userAgent: _userAgentController.text.trim(),
+        customHeaders: _customHeadersController.text.trim(),
       ),
     ]);
   }
@@ -343,8 +375,60 @@ class _NamedUrlDialogState extends State<NamedUrlDialog> {
                 helperText: appLocalizations.optional,
               ),
             ),
+          if (widget.withSubscriptionOptions)
+            _buildSubscriptionOptions(appLocalizations),
         ],
       ),
+    );
+  }
+
+  /// 订阅专用的 UA 与请求头，默认收起——大多数机场不需要，
+  /// 展开后又会把对话框撑得很长。
+  Widget _buildSubscriptionOptions(AppLocalizations appLocalizations) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(appLocalizations.subscriptionAdvanced),
+          subtitle: Text(appLocalizations.subscriptionAdvancedDesc),
+          trailing: IconButton(
+            tooltip: _showAdvanced
+                ? appLocalizations.showLess
+                : appLocalizations.showMore,
+            onPressed: () {
+              setState(() {
+                _showAdvanced = !_showAdvanced;
+              });
+            },
+            icon: CommonExpandIcon(expand: _showAdvanced),
+          ),
+        ),
+        if (_showAdvanced) ...[
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _userAgentController,
+            textInputAction: TextInputAction.next,
+            inputFormatters: TextInputLimits.limit(TextInputLimits.name),
+            decoration: InputDecoration(
+              labelText: appLocalizations.userAgent,
+              helperText: appLocalizations.optional,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customHeadersController,
+            validator: _validateCustomHeaders,
+            keyboardType: TextInputType.multiline,
+            minLines: 3,
+            maxLines: 6,
+            decoration: InputDecoration(
+              labelText: appLocalizations.customHeaders,
+              helperText: appLocalizations.customHeadersTip,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

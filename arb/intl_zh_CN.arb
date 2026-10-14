@@ -905,5 +905,10 @@
   "required": "必填",
   "ageSecretKey": "age 私钥",
   "ageEncryptedProfile": "配置已加密",
-  "ageSecretKeyRequiredTip": "该配置已用 age 加密，需要 age 私钥才能解密"
+  "ageSecretKeyRequiredTip": "该配置已用 age 加密，需要 age 私钥才能解密",
+  "subscriptionAdvanced": "订阅高级选项",
+  "subscriptionAdvancedDesc": "该订阅专用的请求头，用于机场的访问控制",
+  "customHeaders": "自定义请求头",
+  "customHeadersTip": "每行一条，格式 Name: Value",
+  "customHeadersInvalid": "第 {line} 行不是 Name: Value 格式"
 }

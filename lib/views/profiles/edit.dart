@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/icons/icons.dart';
@@ -33,8 +34,11 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
   late final TextEditingController _labelController;
   late final TextEditingController _urlController;
   late final TextEditingController _ageSecretKeyController;
+  late final TextEditingController _userAgentController;
+  late final TextEditingController _customHeadersController;
   late final TextEditingController _autoUpdateDurationController;
   late bool _autoUpdate;
+  bool _showAdvanced = false;
   String? _rawText;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final _fileInfoNotifier = ValueNotifier<FileInfo?>(null);
@@ -49,6 +53,15 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     _ageSecretKeyController = TextEditingController(
       text: widget.profile.ageSecretKey,
     );
+    _userAgentController = TextEditingController(
+      text: widget.profile.userAgent ?? '',
+    );
+    _customHeadersController = TextEditingController(
+      text: CustomHeaders.format(widget.profile.customHeaders),
+    );
+    _showAdvanced =
+        widget.profile.userAgent != null ||
+        widget.profile.customHeaders.isNotEmpty;
     _autoUpdate = widget.profile.autoUpdate;
     _autoUpdateDurationController = TextEditingController(
       text: widget.profile.autoUpdateDuration.inMinutes.toString(),
@@ -73,6 +86,10 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     var profile = widget.profile.copyWith(
       url: _urlController.text,
       ageSecretKey: _ageSecretKeyController.text.trim(),
+      userAgent: _userAgentController.text.trim().isEmpty
+          ? null
+          : _userAgentController.text.trim(),
+      customHeaders: CustomHeaders.parse(_customHeadersController.text),
       label: _labelController.text,
       autoUpdate: _autoUpdate,
       autoUpdateDuration: Duration(
@@ -81,9 +98,15 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     );
     final profilesAction = ref.read(profilesActionProvider.notifier);
     final appLocalizations = context.appLocalizations;
+    // 请求头变了也必须重新拉取，否则改动要等到下次自动更新才生效。
     final hasUpdate =
         widget.profile.url != profile.url ||
-        widget.profile.ageSecretKey != profile.ageSecretKey;
+        widget.profile.ageSecretKey != profile.ageSecretKey ||
+        widget.profile.userAgent != profile.userAgent ||
+        !const DeepCollectionEquality().equals(
+          widget.profile.customHeaders,
+          profile.customHeaders,
+        );
     if (_fileData != null) {
       if (profile.type == ProfileType.url && _autoUpdate) {
         final res = await dialogs.showMessage(
@@ -225,6 +248,8 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     _ageSecretKeyController.dispose();
     _fileInfoNotifier.dispose();
     _autoUpdateDurationController.dispose();
+    _userAgentController.dispose();
+    _customHeadersController.dispose();
     super.dispose();
     _setupAction.autoApplyProfile();
   }
@@ -239,6 +264,16 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
       if (widget.profile.type != ProfileType.custom)
         _AgeSecretKeyField(controller: _ageSecretKeyController),
       if (widget.profile.type == ProfileType.url) ...[
+        _SubscriptionOptionsItem(
+          showAdvanced: _showAdvanced,
+          onToggle: () {
+            setState(() {
+              _showAdvanced = !_showAdvanced;
+            });
+          },
+          userAgentController: _userAgentController,
+          customHeadersController: _customHeadersController,
+        ),
         ListItem.toggle(
           title: Text(appLocalizations.autoUpdate),
           value: _autoUpdate,
@@ -398,6 +433,68 @@ class _AgeSecretKeyField extends StatelessWidget {
           labelText: appLocalizations.ageSecretKey,
           hintText: appLocalizations.optional,
         ),
+      ),
+    );
+  }
+}
+
+/// 订阅专用的 UA 与请求头。默认收起，已设置过的配置自动展开。
+class _SubscriptionOptionsItem extends StatelessWidget {
+  const _SubscriptionOptionsItem({
+    required this.showAdvanced,
+    required this.onToggle,
+    required this.userAgentController,
+    required this.customHeadersController,
+  });
+
+  final bool showAdvanced;
+  final VoidCallback onToggle;
+  final TextEditingController userAgentController;
+  final TextEditingController customHeadersController;
+
+  @override
+  Widget build(BuildContext context) {
+    final appLocalizations = context.appLocalizations;
+    return ListItem(
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(appLocalizations.subscriptionAdvanced)),
+              IconButton(
+                tooltip: showAdvanced
+                    ? appLocalizations.showLess
+                    : appLocalizations.showMore,
+                onPressed: onToggle,
+                icon: CommonExpandIcon(expand: showAdvanced),
+              ),
+            ],
+          ),
+          if (showAdvanced) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: userAgentController,
+              textInputAction: TextInputAction.next,
+              inputFormatters: TextInputLimits.limit(TextInputLimits.name),
+              decoration: InputDecoration(
+                labelText: appLocalizations.userAgent,
+                hintText: appLocalizations.optional,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: customHeadersController,
+              keyboardType: TextInputType.multiline,
+              minLines: 3,
+              maxLines: 6,
+              decoration: InputDecoration(
+                labelText: appLocalizations.customHeaders,
+                hintText: appLocalizations.customHeadersTip,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

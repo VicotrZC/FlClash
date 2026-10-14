@@ -16,15 +16,21 @@ class _RecordingProfilesAction extends ProfilesAction {
   final batches = <List<String>>[];
   final singles = <String>[];
   final ageSecretKeys = <String>[];
+  final userAgents = <String>[];
+  final customHeaders = <String>[];
 
   @override
   Future<void> addProfileFromLink(
     String link, {
     String? label,
     String ageSecretKey = '',
+    String userAgent = '',
+    String customHeaders = '',
   }) async {
     singles.add(link);
     ageSecretKeys.add(ageSecretKey);
+    userAgents.add(userAgent);
+    this.customHeaders.add(customHeaders);
   }
 
   @override

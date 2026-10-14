@@ -7586,6 +7586,56 @@ class AppLocalizations {
       args: [],
     );
   }
+
+  /// `Subscription options`
+  String get subscriptionAdvanced {
+    return Intl.message(
+      'Subscription options',
+      name: 'subscriptionAdvanced',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Request headers this subscription needs, for provider-side access control`
+  String get subscriptionAdvancedDesc {
+    return Intl.message(
+      'Request headers this subscription needs, for provider-side access control',
+      name: 'subscriptionAdvancedDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Custom headers`
+  String get customHeaders {
+    return Intl.message(
+      'Custom headers',
+      name: 'customHeaders',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `One per line, as Name: Value`
+  String get customHeadersTip {
+    return Intl.message(
+      'One per line, as Name: Value',
+      name: 'customHeadersTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Line {line} is not in Name: Value form`
+  String customHeadersInvalid(Object line) {
+    return Intl.message(
+      'Line $line is not in Name: Value form',
+      name: 'customHeadersInvalid',
+      desc: '',
+      args: [line],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalizations> {

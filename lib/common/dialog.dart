@@ -141,6 +141,7 @@ class Dialogs {
     String url = '',
     FormFieldValidator<String>? labelValidator,
     FormFieldValidator<String>? urlValidator,
+    bool withSubscriptionOptions = false,
   }) async {
     final res = await showCommonDialog<List<NamedUrl>>(
       child: NamedUrlDialog(
@@ -149,6 +150,7 @@ class Dialogs {
         url: url,
         labelValidator: labelValidator,
         urlValidator: urlValidator,
+        withSubscriptionOptions: withSubscriptionOptions,
       ),
     );
     return res?.single;
@@ -163,6 +165,7 @@ class Dialogs {
     FormFieldValidator<String>? urlValidator,
     Set<String> existingUrls = const {},
     bool withAgeSecretKey = false,
+    bool withSubscriptionOptions = false,
   }) {
     return showCommonDialog<List<NamedUrl>>(
       child: NamedUrlDialog(
@@ -174,6 +177,7 @@ class Dialogs {
         batch: true,
         existingUrls: existingUrls,
         withAgeSecretKey: withAgeSecretKey,
+        withSubscriptionOptions: withSubscriptionOptions,
       ),
     );
   }

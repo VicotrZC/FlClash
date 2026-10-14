@@ -905,5 +905,10 @@
   "required": "必須",
   "ageSecretKey": "age 秘密鍵",
   "ageEncryptedProfile": "暗号化されたプロファイル",
-  "ageSecretKeyRequiredTip": "このプロファイルは age で暗号化されており、復号には age 秘密鍵が必要です"
+  "ageSecretKeyRequiredTip": "このプロファイルは age で暗号化されており、復号には age 秘密鍵が必要です",
+  "subscriptionAdvanced": "サブスクリプション詳細設定",
+  "subscriptionAdvancedDesc": "このサブスクリプション専用のリクエストヘッダー（プロバイダーのアクセス制御用）",
+  "customHeaders": "カスタムヘッダー",
+  "customHeadersTip": "1 行に 1 つ、Name: Value の形式",
+  "customHeadersInvalid": "{line} 行目が Name: Value 形式ではありません"
 }

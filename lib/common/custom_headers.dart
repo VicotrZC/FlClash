@@ -26,4 +26,31 @@ abstract final class CustomHeaders {
   static String format(Map<String, String> headers) {
     return headers.entries.map((e) => '${e.key}: ${e.value}').join('\n');
   }
+
+  /// 逐行校验编辑框内容，返回第一条格式不对的行号（从 1 开始），没有则返回 null。
+  ///
+  /// 与 [parse] 的容错规则必须一致：parse 会跳过空行，这里也跳过，
+  /// 否则用户只是多敲了个回车就会被拦下。
+  ///
+  /// 之所以要校验而不是像 parse 那样静默跳过：编辑已有配置时，被跳过的那行
+  /// 会在下次保存时无声消失，用户不会知道自己写错了。
+  static int? firstInvalidLine(String? text) {
+    final value = text ?? '';
+    if (value.trim().isEmpty) {
+      return null;
+    }
+    final lines = value.split('\n');
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index].trim();
+      if (line.isEmpty) {
+        continue;
+      }
+      final separator = line.indexOf(':');
+      if (separator <= 0 ||
+          line.substring(0, separator).replaceAll(RegExp(r'\s'), '').isEmpty) {
+        return index + 1;
+      }
+    }
+    return null;
+  }
 }

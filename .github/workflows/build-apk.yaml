@@ -89,20 +89,27 @@ jobs:
 
       # 仓库里没有 keystore 时 build.gradle.kts 会自动回退到 debug 签名，
       # 所以这一步是可选的：配了 secrets 就出正式签名的包，没配也能出可安装的包。
+      #
+      # 注意这里不能用 `if: secrets.KEYSTORE != ''`：secrets 上下文在 step 级 if
+      # 里不可用，那样写会让整个 workflow 解析失败（job 数为 0）。改成在 shell 里判空。
       - name: Setup Android signing
-        if: ${{ secrets.KEYSTORE != '' }}
         env:
           KEYSTORE: ${{ secrets.KEYSTORE }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "没有配置 KEYSTORE，将使用 debug 签名"
+            exit 0
+          fi
           echo "$KEYSTORE" | base64 --decode > android/app/keystore.jks
           {
             echo "keyAlias=$KEY_ALIAS"
             echo "storePassword=$STORE_PASSWORD"
             echo "keyPassword=$KEY_PASSWORD"
           } >> android/local.properties
+          echo "已写入 release 签名配置"
 
       - name: Flutter version
         run: flutter --version

@@ -185,7 +185,8 @@ jobs:
             构建环境：Flutter ${{ env.FLUTTER_VERSION }} / Go ${{ env.GO_VERSION }} / NDK ${{ env.NDK_VERSION }}
             提交：${{ github.sha }}
 
-            安装说明：本包未配置正式签名密钥，使用 debug 签名。
-            若已安装官方版 FlClash，需要先卸载（签名不同无法覆盖安装）。
+            安装说明：未配置正式签名密钥，因此使用 debug 签名，
+            包名为 `com.follow.clash.dev`。它与官方版 `com.follow.clash`
+            是两个独立应用，**可以与官方版并存安装**，互不影响。
           files: release-assets/*
           fail_on_unmatched_files: true

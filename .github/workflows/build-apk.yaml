@@ -1,22 +1,12 @@
 name: build-apk
 
-# 上游的 build.yaml 只在 chen08209/FlClash 上打 tag 时才产出安装包
-# （它的 build job 带 `github.repository == 'chen08209/FlClash'` 条件），
-# 所以在 fork 上永远拿不到 APK。这个 workflow 只做一件事：在 fork 里构建 Android APK。
+# 上游 build.yaml 的 build job 带 `github.repository == 'chen08209/FlClash'`
+# 条件，而 upload job 又 `needs: [build]`，所以在 fork 上永远拿不到安装包：
+# build 被跳过，upload 跟着被跳过，Releases 里什么都不会出现。
+# 这个 workflow 只做一件事：在 fork 里构建 Android APK 并发成 Release。
 
 on:
   workflow_dispatch:
-    inputs:
-      targets:
-        description: '构建哪些 ABI'
-        required: true
-        default: 'android-arm64'
-        type: choice
-        options:
-          - android-arm64
-          - android-arm
-          - android-x64
-          - 'android-arm64,android-arm,android-x64'
   push:
     branches:
       - 'vpncheap*'
@@ -29,7 +19,6 @@ on:
       - 'pubspec.yaml'
       - 'pubspec.lock'
       - 'setup.dart'
-      - 'env.json'
       - '.github/workflows/build-apk.yaml'
 
 concurrency:
@@ -45,6 +34,8 @@ jobs:
   apk:
     name: Android APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -117,11 +108,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # env.json 决定 APP_ENV，不写就是 'pre'，App 右上角会出现 PRE 彩带。
+      # env.json 决定 APP_ENV。它被 .gitignore 排除，所以必须在构建前写出来；
+      # 不写就是 'pre'，App 右上角会出现 PRE 彩带。
       - name: Write env.json
         run: echo '{"APP_ENV":"stable"}' > env.json
 
-      # 与上游 setup.dart android 分支一致：dart-define-from-file + split-per-abi。
+      # 与上游 setup.dart 的 android 分支一致：dart-define-from-file + split-per-abi。
+      # split-per-abi 让每个 ABI 出独立的包，而不是一个 90MB+ 的通用包。
       - name: Build APK
         env:
           ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
@@ -131,13 +124,68 @@ jobs:
             --split-per-abi \
             --dart-define-from-file=env.json
 
-      - name: List artifacts
+      - name: Show artifacts
         run: ls -lh build/app/outputs/flutter-apk/
 
-      - name: Upload APK
+      # 给每个 ABI 一个看得懂的名字，并生成校验和。
+      - name: Rename and checksum
+        id: rename
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/release-assets"
+          rm -rf "$out"
+          mkdir -p "$out"
+          src_dir="$GITHUB_WORKSPACE/build/app/outputs/flutter-apk"
+          for pair in \
+            "app-arm64-v8a-release.apk:FlClash-vpncheap-arm64-v8a.apk" \
+            "app-armeabi-v7a-release.apk:FlClash-vpncheap-armeabi-v7a.apk" \
+            "app-x86_64-release.apk:FlClash-vpncheap-x86_64.apk"
+          do
+            from="${pair%%:*}"
+            to="${pair##*:}"
+            if [ -f "$src_dir/$from" ]; then
+              cp "$src_dir/$from" "$out/$to"
+            fi
+          done
+          cd "$out"
+          # 一个 APK 都没有就是构建没成功，别把空 Release 发出去。
+          count=$(find . -name '*.apk' | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "没有找到任何 APK" >&2
+            exit 1
+          fi
+          sha256sum ./*.apk > SHA256SUMS.txt
+          ls -lh
+          echo "tag=apk-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: flclash-vpncheap-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: release-assets/*
           if-no-files-found: error
           overwrite: true
+
+      # 把产物发成 Release。用 tag 而不是每次覆盖同一个 Release，
+      # 这样历史版本都留着，也便于按版本下载。
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rename.outputs.tag }}
+          name: ${{ steps.rename.outputs.tag }}
+          body: |
+            FlClash v0.9.0 + vpncheap 订阅支持（自动构建）
+
+            包含改动：
+            - 订阅正文解密（响应头 `X-Encrypted: 1`，AES-256-CBC）
+            - 每个订阅独立的 User-Agent 与自定义请求头
+            - sing-box JSON 订阅自动转 Clash YAML
+            - 快捷磁贴显示当前节点名，长按打开节点列表
+
+            构建环境：Flutter ${{ env.FLUTTER_VERSION }} / Go ${{ env.GO_VERSION }} / NDK ${{ env.NDK_VERSION }}
+            提交：${{ github.sha }}
+
+            安装说明：本包未配置正式签名密钥，使用 debug 签名。
+            若已安装官方版 FlClash，需要先卸载（签名不同无法覆盖安装）。
+          files: release-assets/*
+          fail_on_unmatched_files: true

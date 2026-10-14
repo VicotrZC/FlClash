@@ -78,3 +78,9 @@ devtools_options.yaml
 .fvm/
 .fvmrc
 /coverage/lcov.info
+
+# 订阅抓包：真实抓包含服务器地址与 UUID/密码，而解密密钥硬编码在
+# lib/common/subscription_crypto.dart 里，提交等于公开凭据。
+# 测试用的固定向量必须是合成的（见 test/subscription_crypto_test.dart）。
+test/fixtures/*.real.b64
+test/fixtures/*_captured.*

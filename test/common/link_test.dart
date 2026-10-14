@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fl_clash/common/link.dart';
+import 'package:fl_clash/enum/enum.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -103,6 +104,76 @@ void main() {
     await listen();
 
     expect(received, isEmpty);
+  });
+
+  // 快捷磁贴长按依赖这条路径：系统把 QS_TILE_PREFERENCES 交给 MainActivity，
+  // 后者改写成 flclash://<page> 深链，最终落到这里跳页。
+  group('page deep links', () {
+    late List<PageLabel> pages;
+
+    Future<void> listenForPages() async {
+      await linkManager.initAppLinksListen(received.add, onOpenPage: pages.add);
+    }
+
+    setUp(() {
+      pages = [];
+    });
+
+    test('a page link reports the matching page label', () async {
+      await listenForPages();
+
+      await emit('flclash://proxies');
+
+      expect(pages, [PageLabel.proxies]);
+      expect(received, isEmpty);
+    });
+
+    test('every page label round-trips through its own link', () async {
+      await listenForPages();
+
+      for (final label in PageLabel.values) {
+        await emit('flclash://${label.name}');
+      }
+
+      expect(pages, PageLabel.values);
+    });
+
+    test('an install-config link is not treated as a page link', () async {
+      await listenForPages();
+
+      await emit('flclash://install-config?url=https://example.com/a.yaml');
+
+      expect(received, ['https://example.com/a.yaml']);
+      expect(pages, isEmpty);
+    });
+
+    test('an unknown host is ignored by both handlers', () async {
+      await listenForPages();
+
+      await emit('flclash://not-a-page');
+
+      expect(pages, isEmpty);
+      expect(received, isEmpty);
+    });
+
+    test('an unknown scheme is ignored even with a page host', () async {
+      await listenForPages();
+
+      await emit('https://proxies');
+
+      expect(pages, isEmpty);
+    });
+
+    test(
+      'page links are dropped when no page callback is registered',
+      () async {
+        await listen();
+
+        await emit('flclash://proxies');
+
+        expect(received, isEmpty);
+      },
+    );
   });
 
   test('destroy stops delivery and is safe to repeat', () async {

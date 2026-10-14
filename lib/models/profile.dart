@@ -189,9 +189,10 @@ extension ProfileExtension on Profile {
     final userinfo = response.headers.value('subscription-userinfo');
     var data = response.data ?? Uint8List(0);
     // 机场可能对正文加密（响应头 X-Encrypted: 1），先解密再交给 mihomo。
+    // 注意取的是响应头的**名字**，不是它的值。
     data = SubscriptionCrypto.decryptIfNeeded(
       data,
-      response.headers.value(SubscriptionCrypto.encryptedHeaderValue),
+      response.headers.value(SubscriptionCrypto.encryptedHeaderKey),
     );
     // 部分机场下发 sing-box JSON；mihomo 读不懂，先转成 Clash YAML。
     final converted = singBoxJsonToClashYaml(data);

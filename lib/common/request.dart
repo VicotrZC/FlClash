@@ -27,6 +27,13 @@ class Request {
     _read = read;
   }
 
+  /// 订阅下载走的是 [_clashDio]（需要按 UA 分实例），测试无法直接拿到它。
+  /// 暴露一个注入口，让订阅解密这类端到端行为可以被测到。
+  @visibleForTesting
+  set clashAdapter(HttpClientAdapter adapter) {
+    _clashDio.httpClientAdapter = adapter;
+  }
+
   Request() {
     dio = Dio(BaseOptions(headers: {'User-Agent': browserUa}));
     _clashDio = _createDio();

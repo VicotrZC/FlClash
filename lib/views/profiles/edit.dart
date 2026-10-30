@@ -387,7 +387,6 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
                   minLines: 3,
                   maxLines: 6,
                   autocorrect: false,
-                  enableSuggestions: false,
                   decoration: InputDecoration(
                     hintText: appLocalizations.customHeadersTip,
                     isDense: true,

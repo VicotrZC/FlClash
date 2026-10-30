@@ -14,6 +14,8 @@ void main() {
       currentGroupName: 'Select',
       url: 'https://example.com/profile.yaml',
       ageSecretKey: 'AGE-SECRET-KEY-1',
+      userAgent: 'vpncheap-android/2.3.27',
+      customHeaders: const {'X-Test': '1'},
       lastUpdateDate: date,
       extendType: ExtendType.script,
       scriptId: 2,
@@ -34,8 +36,8 @@ void main() {
       ),
     );
 
-    expect(profile.toColumns(true), hasLength(17));
-    expect(profile.toCompanion(true).toColumns(true), hasLength(17));
+    expect(profile.toColumns(true), hasLength(19));
+    expect(profile.toCompanion(true).toColumns(true), hasLength(19));
     expect(RawProfile.fromJson(profile.toJson()).toJson(), profile.toJson());
     expect(profile.copyWith(label: 'Next').label, 'Next');
     expect(
@@ -64,10 +66,14 @@ void main() {
       autoUpdate: false,
       selectedMap: {},
       unfoldSet: {},
+      userAgent: 'vpncheap-android/2.3.27',
+      customHeaders: {},
     );
-    expect(emptyProfile.toColumns(true), hasLength(9));
-    expect(emptyProfile.toColumns(false), hasLength(17));
-    expect(emptyProfile.toCompanion(true).toColumns(true), hasLength(9));
+    // 9 列基础字段 + customHeaders（有数据库默认值，所以总会出现在行里）
+    // + userAgent（可空，赋值后才计入）。与上面那条断言保持同样的口径。
+    expect(emptyProfile.toColumns(true), hasLength(11));
+    expect(emptyProfile.toColumns(false), hasLength(19));
+    expect(emptyProfile.toCompanion(true).toColumns(true), hasLength(11));
 
     final insertedProfile = ProfilesCompanion.insert(
       type: ProfileType.file,
@@ -79,6 +85,8 @@ void main() {
       selectedMap: const {},
       unfoldSet: const {},
     ).copyWith(id: const Value(8), order: const Value(1));
+    // customHeaders 在数据库层有 DEFAULT '{}'，所以 insert 不要求它，
+    // 这里也就不会多出一列；userAgent 可空同样不计。
     expect(insertedProfile.toColumns(true), hasLength(10));
     expect(insertedProfile.toString(), contains('Inserted'));
     expect(
@@ -89,6 +97,8 @@ void main() {
         currentGroupName: const Variable('group'),
         url: const Variable('url'),
         ageSecretKey: const Variable('AGE-SECRET-KEY-1'),
+        userAgent: const Variable('vpncheap-android/2.3.27'),
+        customHeaders: const Variable('{"X-Test":"1"}'),
         lastUpdateDate: Variable(date),
         extendType: const Variable('standard'),
         scriptId: const Variable(2),
@@ -101,7 +111,7 @@ void main() {
         order: const Variable(1),
         overrides: const Variable('{}'),
       ).toColumns(false),
-      hasLength(17),
+      hasLength(19),
     );
 
     final script = RawScript(id: 2, label: 'Script', lastUpdateTime: date);

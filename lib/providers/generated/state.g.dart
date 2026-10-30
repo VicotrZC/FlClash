@@ -138,7 +138,7 @@ final class SetupPatchProvider
   }
 }
 
-String _$setupPatchHash() => r'283e94846903bafab1c22985b6f90d4c0e2a4697';
+String _$setupPatchHash() => r'd09fb41d40ced4cd47c9131fe55e983e35128724';
 
 @ProviderFor(trayState)
 final trayStateProvider = TrayStateProvider._();
@@ -437,7 +437,7 @@ final class SharedStateProvider
   }
 }
 
-String _$sharedStateHash() => r'98486029d33bd542b933d43e0c92a1f74aaa69a0';
+String _$sharedStateHash() => r'37b61193be0ff5b324f13b3657c031bb59aaf2fd';
 
 @ProviderFor(vpnRouteAddress)
 final vpnRouteAddressProvider = VpnRouteAddressProvider._();
@@ -2771,6 +2771,61 @@ final class SelectedProxyNameFamily extends $Family
   @override
   String toString() => r'selectedProxyNameProvider';
 }
+
+/// 当前实际生效的节点名，用于 Android 快捷磁贴。
+///
+/// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+/// 全都没有时返回 null，由调用方决定回退显示什么。
+
+@ProviderFor(currentNodeName)
+final currentNodeNameProvider = CurrentNodeNameProvider._();
+
+/// 当前实际生效的节点名，用于 Android 快捷磁贴。
+///
+/// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+/// 全都没有时返回 null，由调用方决定回退显示什么。
+
+final class CurrentNodeNameProvider
+    extends $FunctionalProvider<String?, String?, String?>
+    with $Provider<String?> {
+  /// 当前实际生效的节点名，用于 Android 快捷磁贴。
+  ///
+  /// 解析顺序：当前分组的选中项 -> 当前分组的 now -> GLOBAL 分组的选中项。
+  /// 全都没有时返回 null，由调用方决定回退显示什么。
+  CurrentNodeNameProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentNodeNameProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentNodeNameHash();
+
+  @$internal
+  @override
+  $ProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String? create(Ref ref) {
+    return currentNodeName(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String?>(value),
+    );
+  }
+}
+
+String _$currentNodeNameHash() => r'515971242f16dd3b8c60ecc1a1c0a70647c9baf1';
 
 @ProviderFor(needUpdateGroups)
 final needUpdateGroupsProvider = NeedUpdateGroupsProvider._();

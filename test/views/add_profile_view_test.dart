@@ -23,6 +23,8 @@ class _RecordingProfilesAction extends ProfilesAction {
     String link, {
     String? label,
     String ageSecretKey = '',
+    String userAgent = '',
+    String customHeaders = '',
   }) async {
     singles.add(link);
     ageSecretKeys.add(ageSecretKey);

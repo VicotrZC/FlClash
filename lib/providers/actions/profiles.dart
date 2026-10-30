@@ -353,6 +353,8 @@ class ProfilesAction extends _$ProfilesAction {
     String link, {
     String? label,
     String ageSecretKey = '',
+    String userAgent = '',
+    String customHeaders = '',
   }) async {
     _showProfiles();
     final profile = await globalState.loadingRun(
@@ -363,7 +365,11 @@ class ProfilesAction extends _$ProfilesAction {
               Profile.normal(
                 label: label,
                 url: link,
-              ).copyWith(ageSecretKey: ageSecretKey),
+              ).copyWith(
+                ageSecretKey: ageSecretKey,
+                userAgent: userAgent.isEmpty ? null : userAgent,
+                customHeaders: CustomHeaders.parse(customHeaders),
+              ),
               _download,
             ),
       title: currentAppLocalizations.addProfile,

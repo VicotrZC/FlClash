@@ -61,6 +61,7 @@ class AddProfileMenu extends ConsumerWidget {
           if (profile.url.isNotEmpty) profile.url,
       },
       withAgeSecretKey: true,
+      withSubscriptionOptions: true,
     );
     switch (res) {
       case null:
@@ -71,6 +72,8 @@ class AddProfileMenu extends ConsumerWidget {
             single.url,
             label: single.label,
             ageSecretKey: single.ageSecretKey,
+            userAgent: single.userAgent,
+            customHeaders: single.customHeaders,
           ),
         );
       default:

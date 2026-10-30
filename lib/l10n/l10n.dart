@@ -7643,6 +7643,56 @@ class AppLocalizations {
     );
   }
 
+  /// `Subscription options`
+  String get subscriptionAdvanced {
+    return Intl.message(
+      'Subscription options',
+      name: 'subscriptionAdvanced',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Request headers this subscription needs, for provider-side access control`
+  String get subscriptionAdvancedDesc {
+    return Intl.message(
+      'Request headers this subscription needs, for provider-side access control',
+      name: 'subscriptionAdvancedDesc',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Custom headers`
+  String get customHeaders {
+    return Intl.message(
+      'Custom headers',
+      name: 'customHeaders',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `One per line, as Name: Value`
+  String get customHeadersTip {
+    return Intl.message(
+      'One per line, as Name: Value',
+      name: 'customHeadersTip',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `Line {line} is not in Name: Value form`
+  String customHeadersInvalid(Object line) {
+    return Intl.message(
+      'Line $line is not in Name: Value form',
+      name: 'customHeadersInvalid',
+      desc: '',
+      args: [line],
+    );
+  }
+
   /// `Holds the start button and can't be removed`
   String get currentOutboundDesc {
     return Intl.message(
@@ -7943,8 +7993,7 @@ class AppLocalizations {
   String customImportDroppedSubRules(num count, Object label) {
     return Intl.plural(
       count,
-      one:
-          '1 SUB-RULE rule was dropped, since custom profiles do not support sub-rules',
+      one: '1 SUB-RULE rule was dropped, since custom profiles do not support sub-rules',
       other:
           '$label SUB-RULE rules were dropped, since custom profiles do not support sub-rules',
       name: 'customImportDroppedSubRules',

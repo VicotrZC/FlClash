@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/features/form/form.dart';
@@ -31,8 +32,11 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
   late final TextEditingController _labelController;
   late final TextEditingController _urlController;
   late final TextEditingController _ageSecretKeyController;
+  late final TextEditingController _userAgentController;
+  late final TextEditingController _customHeadersController;
   late final TextEditingController _autoUpdateDurationController;
   late bool _autoUpdate;
+  bool _showAdvanced = false;
   Uint8List? _editedData;
   bool _attempted = false;
   final _fileInfoNotifier = ValueNotifier<FileInfo?>(null);
@@ -47,6 +51,15 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     _ageSecretKeyController = TextEditingController(
       text: widget.profile.ageSecretKey,
     );
+    _userAgentController = TextEditingController(
+      text: widget.profile.userAgent ?? '',
+    );
+    _customHeadersController = TextEditingController(
+      text: CustomHeaders.format(widget.profile.customHeaders),
+    );
+    _showAdvanced =
+        widget.profile.userAgent != null ||
+        widget.profile.customHeaders.isNotEmpty;
     _autoUpdate = widget.profile.autoUpdate;
     _autoUpdateDurationController = TextEditingController(
       text: widget.profile.autoUpdateDuration.inMinutes.toString(),
@@ -130,6 +143,10 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     var profile = current.copyWith(
       url: _urlController.text,
       ageSecretKey: _ageSecretKeyController.text.trim(),
+      userAgent: _userAgentController.text.trim().isEmpty
+          ? null
+          : _userAgentController.text.trim(),
+      customHeaders: CustomHeaders.parse(_customHeadersController.text),
       label: _labelController.text,
       autoUpdate: _autoUpdate,
       autoUpdateDuration: interval != null && interval > 0
@@ -138,11 +155,16 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     );
     final profilesAction = ref.read(profilesActionProvider.notifier);
     final appLocalizations = context.appLocalizations;
+    // 请求头变了也必须重新拉取，否则改动要等到下次自动更新才生效。
     final hasUpdate =
         current.url != profile.url ||
-        current.ageSecretKey != profile.ageSecretKey;
-    if (_fileData != null) {
-      if (profile.type == ProfileType.url && _autoUpdate) {
+        current.ageSecretKey != profile.ageSecretKey ||
+        current.userAgent != profile.userAgent ||
+        !const DeepCollectionEquality().equals(
+          current.customHeaders,
+          profile.customHeaders,
+        );
+    if (_fileData != null) {      if (profile.type == ProfileType.url && _autoUpdate) {
         final res = await dialogs.showMessage(
           title: appLocalizations.tip,
           message: TextSpan(text: appLocalizations.profileHasUpdate),
@@ -290,6 +312,8 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
     _labelController.dispose();
     _urlController.dispose();
     _ageSecretKeyController.dispose();
+    _userAgentController.dispose();
+    _customHeadersController.dispose();
     _fileInfoNotifier.dispose();
     _autoUpdateDurationController.dispose();
     super.dispose();
@@ -318,6 +342,61 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
           _AgeSecretKeyField(controller: _ageSecretKeyController),
         ],
       ),
+      if (isUrl)
+        generateSection(
+          items: [
+            FormRow(
+              title: appLocalizations.subscriptionAdvanced,
+              onPressed: () {
+                setState(() {
+                  _showAdvanced = !_showAdvanced;
+                });
+              },
+              trailing: IconButton(
+                tooltip: _showAdvanced
+                    ? appLocalizations.showLess
+                    : appLocalizations.showMore,
+                onPressed: () {
+                  setState(() {
+                    _showAdvanced = !_showAdvanced;
+                  });
+                },
+                icon: GlyphIcon(
+                  _showAdvanced ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
+                  size: 18,
+                ),
+              ),
+            ),
+            if (_showAdvanced) ...[
+              FormRow(
+                title: appLocalizations.userAgent,
+                trailing: FormRowTextField(
+                  controller: _userAgentController,
+                  hintText: appLocalizations.optional,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
+                  inputFormatters: TextInputLimits.limit(TextInputLimits.name),
+                ),
+              ),
+              FormRow(
+                title: appLocalizations.customHeaders,
+                trailing: TextField(
+                  controller: _customHeadersController,
+                  keyboardType: TextInputType.multiline,
+                  minLines: 3,
+                  maxLines: 6,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  decoration: InputDecoration(
+                    hintText: appLocalizations.customHeadersTip,
+                    isDense: true,
+                    border: InputBorder.none,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       if (isUrl)
         generateSection(
           items: [

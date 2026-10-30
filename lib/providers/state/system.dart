@@ -192,12 +192,14 @@ SharedState sharedState(Ref ref) {
   );
   final currentProfileName = currentProfile.label;
   final selectedMap = currentProfile.selectedMap;
+  final currentNodeName = ref.watch(currentNodeNameProvider);
   final onlyStatisticsProxy = appSetting.onlyStatisticsProxy;
   final testUrl = ref.watch(
     patchClashConfigProvider.select((state) => state.testUrl),
   );
   return SharedState(
     currentProfileName: currentProfileName,
+    currentNodeName: currentNodeName,
     onlyStatisticsProxy: onlyStatisticsProxy,
     showStopAction: appSetting.showStopAction,
     stopText: currentAppLocalizations.stop,

@@ -8,7 +8,13 @@ import 'batch_section.dart';
 import 'form_page.dart';
 import 'form_row.dart';
 
-typedef NamedUrl = ({String label, String url, String ageSecretKey});
+typedef NamedUrl = ({
+  String label,
+  String url,
+  String ageSecretKey,
+  String userAgent,
+  String customHeaders,
+});
 
 Future<NamedUrl?> showNamedUrlForm(
   BuildContext context, {
@@ -17,6 +23,7 @@ Future<NamedUrl?> showNamedUrlForm(
   String url = '',
   FormFieldValidator<String>? labelValidator,
   FormFieldValidator<String>? urlValidator,
+  bool withSubscriptionOptions = false,
 }) async {
   final res = await showFormSheet<List<NamedUrl>>(
     context: context,
@@ -26,6 +33,7 @@ Future<NamedUrl?> showNamedUrlForm(
       url: url,
       labelValidator: labelValidator,
       urlValidator: urlValidator,
+      withSubscriptionOptions: withSubscriptionOptions,
     ),
   );
   return res?.single;
@@ -41,6 +49,7 @@ Future<List<NamedUrl>?> showNamedUrlsForm(
   FormFieldValidator<String>? urlValidator,
   Set<String> existingUrls = const {},
   bool withAgeSecretKey = false,
+  bool withSubscriptionOptions = false,
 }) {
   return showFormSheet<List<NamedUrl>>(
     context: context,
@@ -53,6 +62,7 @@ Future<List<NamedUrl>?> showNamedUrlsForm(
       batch: true,
       existingUrls: existingUrls,
       withAgeSecretKey: withAgeSecretKey,
+      withSubscriptionOptions: withSubscriptionOptions,
     ),
   );
 }
@@ -72,6 +82,7 @@ class NamedUrlForm extends StatefulWidget {
   final bool batch;
   final Set<String> existingUrls;
   final bool withAgeSecretKey;
+  final bool withSubscriptionOptions;
 
   const NamedUrlForm({
     super.key,
@@ -85,6 +96,7 @@ class NamedUrlForm extends StatefulWidget {
     this.batch = false,
     this.existingUrls = const {},
     this.withAgeSecretKey = false,
+    this.withSubscriptionOptions = false,
   });
 
   @override
@@ -98,7 +110,10 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
   late final TextEditingController _urlController;
   final _ageSecretKeyController = TextEditingController();
   final _batchController = TextEditingController();
+  final _userAgentController = TextEditingController();
+  final _customHeadersController = TextEditingController();
   bool _isBatch = false;
+  bool _showAdvanced = false;
   bool _attempted = false;
   ParsedInput<String>? _parsed;
 
@@ -133,6 +148,8 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
     _urlController.dispose();
     _ageSecretKeyController.dispose();
     _batchController.dispose();
+    _userAgentController.dispose();
+    _customHeadersController.dispose();
     super.dispose();
   }
 
@@ -208,7 +225,13 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
       }
       Navigator.of(context).pop<List<NamedUrl>>([
         for (final url in parsed.entries)
-          (label: '', url: url, ageSecretKey: ''),
+          (
+            label: '',
+            url: url,
+            ageSecretKey: '',
+            userAgent: '',
+            customHeaders: '',
+          ),
       ]);
       return;
     }
@@ -223,6 +246,8 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
         label: _labelController.text.trim(),
         url: _urlController.text.trim(),
         ageSecretKey: _ageSecretKeyController.text.trim(),
+        userAgent: _userAgentController.text.trim(),
+        customHeaders: _customHeadersController.text.trim(),
       ),
     ]);
   }
@@ -318,7 +343,79 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
               onFieldSubmitted: (_) => _handleSubmit(),
             ),
           ),
+        if (widget.withSubscriptionOptions) ...[
+          FormRow(
+            title: appLocalizations.subscriptionAdvanced,
+            onPressed: () {
+              setState(() {
+                _showAdvanced = !_showAdvanced;
+              });
+            },
+            trailing: IconButton(
+              tooltip: _showAdvanced
+                  ? appLocalizations.showLess
+                  : appLocalizations.showMore,
+              onPressed: () {
+                setState(() {
+                  _showAdvanced = !_showAdvanced;
+                });
+              },
+              icon: GlyphIcon(
+                _showAdvanced ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
+                size: 18,
+              ),
+            ),
+          ),
+          if (_showAdvanced) ...[
+            FormRow(
+              title: appLocalizations.userAgent,
+              trailing: FormRowTextField(
+                controller: _userAgentController,
+                hintText: appLocalizations.optional,
+                textInputAction: TextInputAction.next,
+                autocorrect: false,
+                inputFormatters: TextInputLimits.limit(TextInputLimits.name),
+              ),
+            ),
+            FormRow(
+              title: appLocalizations.customHeaders,
+              trailing: MultiLineHeaderField(
+                controller: _customHeadersController,
+                hintText: appLocalizations.customHeadersTip,
+              ),
+            ),
+          ],
+        ],
       ],
+    );
+  }
+}
+
+/// 自定义请求头是多行文本，而 FormRowTextField 只支持单行。
+class MultiLineHeaderField extends StatelessWidget {
+  const MultiLineHeaderField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.multiline,
+      minLines: 3,
+      maxLines: 6,
+      autocorrect: false,
+      enableSuggestions: false,
+      decoration: InputDecoration(
+        hintText: hintText,
+        isDense: true,
+        border: InputBorder.none,
+      ),
     );
   }
 }

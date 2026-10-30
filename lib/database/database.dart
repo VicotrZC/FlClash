@@ -53,7 +53,7 @@ class Database extends _$Database {
   Database([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 22;
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -117,6 +117,17 @@ class Database extends _$Database {
         if (from < 21) {
           await _createTableIfMissing(m, ipQualities);
         }
+        if (from < 22) {
+          await _addColumnIfMissing(m, profiles, profiles.userAgent);
+          // customHeaders 带类型转换器，Drift 生成的 ALTER 不带 DEFAULT；
+          // 而该列是 NOT NULL，对已有数据的表加列会被 SQLite 拒绝。
+          // 这里显式给出与建表时一致的 DEFAULT '{}'。
+          await _addColumnWithDefaultIfMissing(
+            profiles,
+            'custom_headers',
+            "TEXT NOT NULL DEFAULT '{}'",
+          );
+        }
       }),
       beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
     );
@@ -146,6 +157,22 @@ class Database extends _$Database {
       return;
     }
     await m.addColumn(table, column);
+  }
+
+  /// 与 [_addColumnIfMissing] 相同，但用于 Drift 无法表达数据库级默认值的列
+  /// （NOT NULL + 类型转换器）。SQLite 拒绝对已有数据的表执行
+  /// `ADD COLUMN ... NOT NULL` 而不给 DEFAULT，所以定义由调用方原样给出。
+  Future<void> _addColumnWithDefaultIfMissing(
+    TableInfo table,
+    String columnName,
+    String definition,
+  ) async {
+    if ((await _columnsOf(table.actualTableName)).contains(columnName)) {
+      return;
+    }
+    await customStatement(
+      'ALTER TABLE ${table.actualTableName} ADD COLUMN $columnName $definition',
+    );
   }
 
   Future<void> _renameColumnIfPresent(

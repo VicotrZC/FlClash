@@ -1,0 +1,192 @@
+name: build-apk
+
+# 上游 build.yaml 的 build job 带 `github.repository == 'chen08209/FlClash'`
+# 条件，而 upload job 又 `needs: [build]`，所以在 fork 上永远拿不到安装包：
+# build 被跳过，upload 跟着被跳过，Releases 里什么都不会出现。
+# 这个 workflow 只做一件事：在 fork 里构建 Android APK 并发成 Release。
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'vpncheap*'
+    paths:
+      # 只在这些路径变化时重跑，避免改个文档也触发一次完整构建。
+      - 'lib/**'
+      - 'android/**'
+      - 'core/**'
+      - 'plugins/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'setup.dart'
+      - '.github/workflows/build-apk.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.6'
+  GO_VERSION: '1.27.1'
+  NDK_VERSION: r28c
+
+jobs:
+  apk:
+    name: Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Setup NDK
+        uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: ${{ env.NDK_VERSION }}
+          add-to-path: true
+          link-to-sdk: true
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: services/helper
+          cache-directories: .dart_tool/hooks_runner
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      # 仓库里没有 keystore 时 build.gradle.kts 会自动回退到 debug 签名，
+      # 所以这一步是可选的：配了 secrets 就出正式签名的包，没配也能出可安装的包。
+      #
+      # 注意这里不能用 `if: secrets.KEYSTORE != ''`：secrets 上下文在 step 级 if
+      # 里不可用，那样写会让整个 workflow 解析失败（job 数为 0）。改成在 shell 里判空。
+      - name: Setup Android signing
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "没有配置 KEYSTORE，将使用 debug 签名"
+            exit 0
+          fi
+          echo "$KEYSTORE" | base64 --decode > android/app/keystore.jks
+          {
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+          } >> android/local.properties
+          echo "已写入 release 签名配置"
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # env.json 决定 APP_ENV。它被 .gitignore 排除，所以必须在构建前写出来；
+      # 不写就是 'pre'，App 右上角会出现 PRE 彩带。
+      - name: Write env.json
+        run: echo '{"APP_ENV":"stable"}' > env.json
+
+      # 与上游 setup.dart 的 android 分支一致：dart-define-from-file + split-per-abi。
+      # split-per-abi 让每个 ABI 出独立的包，而不是一个 90MB+ 的通用包。
+      - name: Build APK
+        env:
+          ANDROID_NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
+        run: |
+          flutter build apk \
+            --release \
+            --split-per-abi \
+            --dart-define-from-file=env.json
+
+      - name: Show artifacts
+        run: ls -lh build/app/outputs/flutter-apk/
+
+      # 给每个 ABI 一个看得懂的名字，并生成校验和。
+      - name: Rename and checksum
+        id: rename
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/release-assets"
+          rm -rf "$out"
+          mkdir -p "$out"
+          src_dir="$GITHUB_WORKSPACE/build/app/outputs/flutter-apk"
+          for pair in \
+            "app-arm64-v8a-release.apk:FlClash-vpncheap-arm64-v8a.apk" \
+            "app-armeabi-v7a-release.apk:FlClash-vpncheap-armeabi-v7a.apk" \
+            "app-x86_64-release.apk:FlClash-vpncheap-x86_64.apk"
+          do
+            from="${pair%%:*}"
+            to="${pair##*:}"
+            if [ -f "$src_dir/$from" ]; then
+              cp "$src_dir/$from" "$out/$to"
+            fi
+          done
+          cd "$out"
+          # 一个 APK 都没有就是构建没成功，别把空 Release 发出去。
+          count=$(find . -name '*.apk' | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "没有找到任何 APK" >&2
+            exit 1
+          fi
+          sha256sum ./*.apk > SHA256SUMS.txt
+          ls -lh
+          echo "tag=apk-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flclash-vpncheap-apk
+          path: release-assets/*
+          if-no-files-found: error
+          overwrite: true
+
+      # 把产物发成 Release。用 tag 而不是每次覆盖同一个 Release，
+      # 这样历史版本都留着，也便于按版本下载。
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rename.outputs.tag }}
+          name: ${{ steps.rename.outputs.tag }}
+          body: |
+            FlClash v0.9.0 + vpncheap 订阅支持（自动构建）
+
+            包含改动：
+            - 订阅正文解密（响应头 `X-Encrypted: 1`，AES-256-CBC）
+            - 每个订阅独立的 User-Agent 与自定义请求头
+            - sing-box JSON 订阅自动转 Clash YAML
+            - 快捷磁贴显示当前节点名，长按打开节点列表
+
+            构建环境：Flutter ${{ env.FLUTTER_VERSION }} / Go ${{ env.GO_VERSION }} / NDK ${{ env.NDK_VERSION }}
+            提交：${{ github.sha }}
+
+            安装说明：未配置正式签名密钥，因此使用 debug 签名，
+            包名为 `com.follow.clash.dev`。它与官方版 `com.follow.clash`
+            是两个独立应用，**可以与官方版并存安装**，互不影响。
+          files: release-assets/*
+          fail_on_unmatched_files: true

@@ -26,8 +26,9 @@ class Profiles extends Table {
   /// insert，全新安装建出来的表仍是 `NOT NULL` 且无默认值，于是任何绕过
   /// companion 的裸 INSERT 都会失败（升级上来的库因为迁移里写了 DEFAULT '{}'
   /// 反而不会）。两边必须一致。
-  TextColumn get customHeaders =>
-      text().map(const StringMapConverter()).withDefault(const Constant('{}'))();
+  TextColumn get customHeaders => text()
+      .map(const StringMapConverter())
+      .withDefault(const Constant('{}'))();
 
   DateTimeColumn get lastUpdateDate => dateTime().nullable()();
 

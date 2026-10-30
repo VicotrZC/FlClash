@@ -124,12 +124,6 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: flutter pub get
 
-      # env.json 决定 APP_ENV。它被 .gitignore 排除，必须构建前写出来；
-      # 不写就是 'pre'，App 右上角会出现 PRE 彩带。
-      - name: Write env.json
-        if: steps.gate.outputs.run == 'true'
-        shell: bash
-        run: echo '{"APP_ENV":"stable"}' > env.json
 
       - name: Flutter version
         if: steps.gate.outputs.run == 'true'

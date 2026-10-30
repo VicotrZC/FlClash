@@ -10,8 +10,10 @@ import 'clash_config.dart';
 part 'generated/profile.freezed.dart';
 part 'generated/profile.g.dart';
 
-typedef ValidateConfig =
-    Future<String> Function(String path, String ageSecretKey);
+typedef ValidateConfig = Future<String> Function(
+  String path,
+  String ageSecretKey,
+);
 
 @freezed
 abstract class SubscriptionInfo with _$SubscriptionInfo {
@@ -69,8 +71,10 @@ abstract class Profile with _$Profile {
     String? currentGroupName,
     @Default('') String url,
     @Default('') String ageSecretKey,
+
     /// 订阅请求使用的 User-Agent；为空时用全局 UA。
     String? userAgent,
+
     /// 订阅请求附带的额外请求头（部分机场以此做访问控制）。
     @Default({}) Map<String, String> customHeaders,
     DateTime? lastUpdateDate,

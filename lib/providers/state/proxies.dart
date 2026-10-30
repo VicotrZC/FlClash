@@ -269,7 +269,10 @@ String? currentNodeName(Ref ref) {
   final currentGroupName = ref.watch(
     currentProfileProvider.select((state) => state?.currentGroupName),
   );
-  final candidates = [currentGroupName, GroupName.GLOBAL.name].whereType<String>();
+  final candidates = [
+    currentGroupName,
+    GroupName.GLOBAL.name,
+  ].whereType<String>();
   for (final groupName in candidates) {
     final group = groups.getGroup(groupName);
     if (group == null) {

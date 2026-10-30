@@ -164,7 +164,8 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
           current.customHeaders,
           profile.customHeaders,
         );
-    if (_fileData != null) {      if (profile.type == ProfileType.url && _autoUpdate) {
+    if (_fileData != null) {
+      if (profile.type == ProfileType.url && _autoUpdate) {
         final res = await dialogs.showMessage(
           title: appLocalizations.tip,
           message: TextSpan(text: appLocalizations.profileHasUpdate),

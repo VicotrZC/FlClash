@@ -4821,50 +4821,48 @@ abstract class _$Database extends GeneratedDatabase {
   ]);
 }
 
-typedef $$ProfilesTableCreateCompanionBuilder =
-    ProfilesCompanion Function({
-      Value<int> id,
-      required ProfileType type,
-      required String label,
-      Value<String?> currentGroupName,
-      required String url,
-      Value<String?> ageSecretKey,
-      Value<String?> userAgent,
-      Value<Map<String, String>> customHeaders,
-      Value<DateTime?> lastUpdateDate,
-      required ExtendType extendType,
-      Value<int?> scriptId,
-      Value<String?> matchTarget,
-      required int autoUpdateDurationMillis,
-      Value<SubscriptionInfo?> subscriptionInfo,
-      required bool autoUpdate,
-      required Map<String, String> selectedMap,
-      required Set<String> unfoldSet,
-      Value<int?> order,
-      Value<ProfileOverrides?> overrides,
-    });
-typedef $$ProfilesTableUpdateCompanionBuilder =
-    ProfilesCompanion Function({
-      Value<int> id,
-      Value<ProfileType> type,
-      Value<String> label,
-      Value<String?> currentGroupName,
-      Value<String> url,
-      Value<String?> ageSecretKey,
-      Value<String?> userAgent,
-      Value<Map<String, String>> customHeaders,
-      Value<DateTime?> lastUpdateDate,
-      Value<ExtendType> extendType,
-      Value<int?> scriptId,
-      Value<String?> matchTarget,
-      Value<int> autoUpdateDurationMillis,
-      Value<SubscriptionInfo?> subscriptionInfo,
-      Value<bool> autoUpdate,
-      Value<Map<String, String>> selectedMap,
-      Value<Set<String>> unfoldSet,
-      Value<int?> order,
-      Value<ProfileOverrides?> overrides,
-    });
+typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
+  Value<int> id,
+  required ProfileType type,
+  required String label,
+  Value<String?> currentGroupName,
+  required String url,
+  Value<String?> ageSecretKey,
+  Value<String?> userAgent,
+  Value<Map<String, String>> customHeaders,
+  Value<DateTime?> lastUpdateDate,
+  required ExtendType extendType,
+  Value<int?> scriptId,
+  Value<String?> matchTarget,
+  required int autoUpdateDurationMillis,
+  Value<SubscriptionInfo?> subscriptionInfo,
+  required bool autoUpdate,
+  required Map<String, String> selectedMap,
+  required Set<String> unfoldSet,
+  Value<int?> order,
+  Value<ProfileOverrides?> overrides,
+});
+typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
+  Value<int> id,
+  Value<ProfileType> type,
+  Value<String> label,
+  Value<String?> currentGroupName,
+  Value<String> url,
+  Value<String?> ageSecretKey,
+  Value<String?> userAgent,
+  Value<Map<String, String>> customHeaders,
+  Value<DateTime?> lastUpdateDate,
+  Value<ExtendType> extendType,
+  Value<int?> scriptId,
+  Value<String?> matchTarget,
+  Value<int> autoUpdateDurationMillis,
+  Value<SubscriptionInfo?> subscriptionInfo,
+  Value<bool> autoUpdate,
+  Value<Map<String, String>> selectedMap,
+  Value<Set<String>> unfoldSet,
+  Value<int?> order,
+  Value<ProfileOverrides?> overrides,
+});
 
 final class $$ProfilesTableReferences
     extends BaseReferences<_$Database, $ProfilesTable, RawProfile> {
@@ -5710,22 +5708,20 @@ typedef $$ProfilesTableProcessedTableManager =
         bool proxyDialersRefs,
       })
     >;
-typedef $$ScriptsTableCreateCompanionBuilder =
-    ScriptsCompanion Function({
-      Value<int> id,
-      required String label,
-      required DateTime lastUpdateTime,
-      Value<String?> url,
-      Value<int?> order,
-    });
-typedef $$ScriptsTableUpdateCompanionBuilder =
-    ScriptsCompanion Function({
-      Value<int> id,
-      Value<String> label,
-      Value<DateTime> lastUpdateTime,
-      Value<String?> url,
-      Value<int?> order,
-    });
+typedef $$ScriptsTableCreateCompanionBuilder = ScriptsCompanion Function({
+  Value<int> id,
+  required String label,
+  required DateTime lastUpdateTime,
+  Value<String?> url,
+  Value<int?> order,
+});
+typedef $$ScriptsTableUpdateCompanionBuilder = ScriptsCompanion Function({
+  Value<int> id,
+  Value<String> label,
+  Value<DateTime> lastUpdateTime,
+  Value<String?> url,
+  Value<int?> order,
+});
 
 class $$ScriptsTableFilterComposer extends Composer<_$Database, $ScriptsTable> {
   $$ScriptsTableFilterComposer({
@@ -5908,32 +5904,30 @@ typedef $$ScriptsTableProcessedTableManager =
       RawScript,
       PrefetchHooks Function()
     >;
-typedef $$RulesTableCreateCompanionBuilder =
-    RulesCompanion Function({
-      Value<int> id,
-      Value<int?> profileId,
-      required RuleAction ruleAction,
-      Value<String?> content,
-      Value<String?> ruleTarget,
-      Value<String?> ruleProvider,
-      Value<String?> subRule,
-      Value<bool> noResolve,
-      Value<bool> src,
-      Value<String?> order,
-    });
-typedef $$RulesTableUpdateCompanionBuilder =
-    RulesCompanion Function({
-      Value<int> id,
-      Value<int?> profileId,
-      Value<RuleAction> ruleAction,
-      Value<String?> content,
-      Value<String?> ruleTarget,
-      Value<String?> ruleProvider,
-      Value<String?> subRule,
-      Value<bool> noResolve,
-      Value<bool> src,
-      Value<String?> order,
-    });
+typedef $$RulesTableCreateCompanionBuilder = RulesCompanion Function({
+  Value<int> id,
+  Value<int?> profileId,
+  required RuleAction ruleAction,
+  Value<String?> content,
+  Value<String?> ruleTarget,
+  Value<String?> ruleProvider,
+  Value<String?> subRule,
+  Value<bool> noResolve,
+  Value<bool> src,
+  Value<String?> order,
+});
+typedef $$RulesTableUpdateCompanionBuilder = RulesCompanion Function({
+  Value<int> id,
+  Value<int?> profileId,
+  Value<RuleAction> ruleAction,
+  Value<String?> content,
+  Value<String?> ruleTarget,
+  Value<String?> ruleProvider,
+  Value<String?> subRule,
+  Value<bool> noResolve,
+  Value<bool> src,
+  Value<String?> order,
+});
 
 final class $$RulesTableReferences
     extends BaseReferences<_$Database, $RulesTable, RawRule> {
@@ -6352,17 +6346,15 @@ class $$RulesTableTableManager
                         >
                       >(state) {
                         if (profileId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.profileId,
-                                    referencedTable: $$RulesTableReferences
-                                        ._profileIdTable(db),
-                                    referencedColumn: $$RulesTableReferences
-                                        ._profileIdTable(db)
-                                        .id,
-                                  )
-                                  as T;
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.profileId,
+                            referencedTable: $$RulesTableReferences
+                                ._profileIdTable(db),
+                            referencedColumn: $$RulesTableReferences
+                                ._profileIdTable(db)
+                                .id,
+                          ) as T;
                         }
 
                         return state;
@@ -6710,30 +6702,26 @@ class $$DisabledRulesTableTableManager
                     >
                   >(state) {
                     if (profileId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.profileId,
-                                referencedTable: $$DisabledRulesTableReferences
-                                    ._profileIdTable(db),
-                                referencedColumn: $$DisabledRulesTableReferences
-                                    ._profileIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$DisabledRulesTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$DisabledRulesTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
                     }
                     if (ruleId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.ruleId,
-                                referencedTable: $$DisabledRulesTableReferences
-                                    ._ruleIdTable(db),
-                                referencedColumn: $$DisabledRulesTableReferences
-                                    ._ruleIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.ruleId,
+                        referencedTable: $$DisabledRulesTableReferences
+                            ._ruleIdTable(db),
+                        referencedColumn: $$DisabledRulesTableReferences
+                            ._ruleIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -7095,17 +7083,15 @@ class $$ProxyGroupsTableTableManager
                     >
                   >(state) {
                     if (profileId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.profileId,
-                                referencedTable: $$ProxyGroupsTableReferences
-                                    ._profileIdTable(db),
-                                referencedColumn: $$ProxyGroupsTableReferences
-                                    ._profileIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$ProxyGroupsTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$ProxyGroupsTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;
@@ -7284,24 +7270,22 @@ typedef $$IconRecordsTableProcessedTableManager =
       IconRecord,
       PrefetchHooks Function()
     >;
-typedef $$IconSetsTableCreateCompanionBuilder =
-    IconSetsCompanion Function({
-      Value<int> id,
-      required String name,
-      required String url,
-      required List<IconSetIcon> icons,
-      Value<DateTime?> lastUpdateTime,
-      Value<int?> order,
-    });
-typedef $$IconSetsTableUpdateCompanionBuilder =
-    IconSetsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String> url,
-      Value<List<IconSetIcon>> icons,
-      Value<DateTime?> lastUpdateTime,
-      Value<int?> order,
-    });
+typedef $$IconSetsTableCreateCompanionBuilder = IconSetsCompanion Function({
+  Value<int> id,
+  required String name,
+  required String url,
+  required List<IconSetIcon> icons,
+  Value<DateTime?> lastUpdateTime,
+  Value<int?> order,
+});
+typedef $$IconSetsTableUpdateCompanionBuilder = IconSetsCompanion Function({
+  Value<int> id,
+  Value<String> name,
+  Value<String> url,
+  Value<List<IconSetIcon>> icons,
+  Value<DateTime?> lastUpdateTime,
+  Value<int?> order,
+});
 
 class $$IconSetsTableFilterComposer
     extends Composer<_$Database, $IconSetsTable> {
@@ -8363,30 +8347,26 @@ class $$ProxyDialersTableTableManager
                     >
                   >(state) {
                     if (profileId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.profileId,
-                                referencedTable: $$ProxyDialersTableReferences
-                                    ._profileIdTable(db),
-                                referencedColumn: $$ProxyDialersTableReferences
-                                    ._profileIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.profileId,
+                        referencedTable: $$ProxyDialersTableReferences
+                            ._profileIdTable(db),
+                        referencedColumn: $$ProxyDialersTableReferences
+                            ._profileIdTable(db)
+                            .id,
+                      ) as T;
                     }
                     if (proxyId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.proxyId,
-                                referencedTable: $$ProxyDialersTableReferences
-                                    ._proxyIdTable(db),
-                                referencedColumn: $$ProxyDialersTableReferences
-                                    ._proxyIdTable(db)
-                                    .id,
-                              )
-                              as T;
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.proxyId,
+                        referencedTable: $$ProxyDialersTableReferences
+                            ._proxyIdTable(db),
+                        referencedColumn: $$ProxyDialersTableReferences
+                            ._proxyIdTable(db)
+                            .id,
+                      ) as T;
                     }
 
                     return state;

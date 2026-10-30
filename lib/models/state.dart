@@ -187,6 +187,7 @@ abstract class SharedState with _$SharedState {
     required String startTip,
     required String localNetworkTip,
     required String currentProfileName,
+
     /// 当前生效的节点名，供 Android 快捷磁贴显示；未选择任何节点时为 null。
     String? currentNodeName,
     required String stopText,

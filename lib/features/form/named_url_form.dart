@@ -244,6 +244,11 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
           parsed.entries.isEmpty) {
         setState(() {
           _attempted = true;
+          // 请求头报错时自动展开，否则错误藏在折叠区里，用户只看到一句
+          // 「第 2 行格式不对」却找不到那个输入框。
+          if (_customHeadersError() != null) {
+            _showAdvanced = true;
+          }
         });
         return;
       }
@@ -263,6 +268,9 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
     if (_issue() != null) {
       setState(() {
         _attempted = true;
+        if (_customHeadersError() != null) {
+          _showAdvanced = true;
+        }
       });
       return;
     }
@@ -283,23 +291,18 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
     final issue = _attempted && !_isBatch ? _issue() : null;
     // 批量模式下没有单条字段的 issue，但请求头同样要校验并回显；
     // 之前这里只走 batchInput.errorOf，输错的请求头永远不会被提示。
+    final headerError = _attempted ? _customHeadersError() : null;
     final String? error;
     if (_isBatch) {
-      error = _attempted
-          ? (_customHeadersError() ??
-                _batchInput.errorOf(
-                  appLocalizations,
-                  _parsed,
-                  attempted: _attempted,
-                ))
-          : _batchInput.errorOf(
-              appLocalizations,
-              _parsed,
-              attempted: _attempted,
-            );
+      error =
+          headerError ??
+          _batchInput.errorOf(appLocalizations, _parsed, attempted: _attempted);
     } else {
       error = issue?.message;
     }
+    // 批量模式 issue 恒为 null，若只看 issue?.field，请求头报错时输入框不会标红。
+    final headerInvalid =
+        headerError != null || issue?.field == _NamedUrlField.customHeaders;
     return FormPage(
       title: _isBatch ? appLocalizations.batchImport : widget.title,
       saveLabel: appLocalizations.submit,
@@ -328,7 +331,7 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
         // 批量导入同样需要请求头：vpncheap 这类机场少一个 X-Client-Encrypt
         // 就是 403，不能要求用户导入完再逐个编辑。
         if (widget.withSubscriptionOptions)
-          _buildSubscriptionOptions(appLocalizations, issue?.field),
+          _buildSubscriptionOptions(appLocalizations, headerInvalid),
       ],
     );
   }
@@ -393,9 +396,12 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
   /// 「订阅高级选项」：每个订阅自己的 User-Agent 与请求头。
   ///
   /// 单条导入与批量导入都会渲染这一块；批量时这套值应用到本次导入的每个 URL。
+  ///
+  /// [headerInvalid] 用 bool 而不是字段枚举：批量模式下没有单条 issue，
+  /// 只看枚举的话请求头报错时输入框永远不会标红。
   Widget _buildSubscriptionOptions(
     AppLocalizations appLocalizations,
-    _NamedUrlField? invalid,
+    bool headerInvalid,
   ) {
     return generateSection(
       items: [
@@ -434,7 +440,7 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
           ),
           FormRow(
             title: appLocalizations.customHeaders,
-            invalid: invalid == _NamedUrlField.customHeaders,
+            invalid: headerInvalid,
             trailing: MultiLineHeaderField(
               controller: _customHeadersController,
               hintText: appLocalizations.customHeadersTip,

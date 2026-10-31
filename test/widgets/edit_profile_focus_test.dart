@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/features/form/form.dart';
 import 'package:fl_clash/l10n/l10n.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/providers/providers.dart';
@@ -202,5 +203,69 @@ void main() {
     final saved = globalState.container.read(profilesProvider).single;
     expect(saved.autoUpdate, isFalse);
     expect(saved.autoUpdateDuration, profile.autoUpdateDuration);
+  });
+
+  testWidgets('编辑页在保存前拦下非法的自定义请求头', (tester) async {
+    final profile = _urlProfile();
+    await pumpEditProfile(
+      tester,
+      profile: profile,
+      overrides: [
+        profilesProvider.overrideWith(() => TestProfiles([profile])),
+      ],
+    );
+
+    // 展开「订阅高级选项」
+    await tester.tap(find.text('Subscription options'));
+    await tester.pumpAndSettle();
+
+    // 漏掉冒号，正是最典型的输错方式。
+    // 保存走的是 CustomHeaders.parse，它会把这一行静默丢掉 ——
+    // 于是 profile 存下来了、订阅却 403，用户完全看不出原因。
+    final headers = find.descendant(
+      of: find.widgetWithText(FormRow, 'Custom headers'),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(headers, 'X-Client-Encrypt v1');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Line 1 is not in Name: Value form'),
+      findsOneWidget,
+      reason: '编辑页必须在保存前拦下，而不是让 parse 静默丢掉这一行',
+    );
+    // 页面没有关闭，说明保存被拦住了。
+    expect(find.byType(EditProfileView), findsOneWidget);
+  });
+
+  testWidgets('编辑页的请求头合法时正常保存', (tester) async {
+    final profile = _urlProfile();
+    await pumpEditProfile(
+      tester,
+      profile: profile,
+      overrides: [
+        profilesProvider.overrideWith(() => TestProfiles([profile])),
+      ],
+    );
+
+    await tester.tap(find.text('Subscription options'));
+    await tester.pumpAndSettle();
+
+    final headers = find.descendant(
+      of: find.widgetWithText(FormRow, 'Custom headers'),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(headers, 'X-Client-Encrypt: v1');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Save'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final saved = globalState.container.read(profilesProvider).single;
+    expect(saved.customHeaders, {'X-Client-Encrypt': 'v1'});
   });
 }

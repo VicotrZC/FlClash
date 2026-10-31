@@ -17,7 +17,7 @@ import 'package:fl_clash/widgets/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-enum _ProfileField { label, url, autoUpdateInterval }
+enum _ProfileField { label, url, autoUpdateInterval, customHeaders }
 
 class EditProfileView extends ConsumerStatefulWidget {
   final Profile profile;
@@ -118,6 +118,17 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
         field: _ProfileField.autoUpdateInterval,
         message:
             appLocalizations.profileAutoUpdateIntervalInvalidValidationDesc,
+      );
+    }
+    // 请求头必须在这里拦下：保存时用的是 CustomHeaders.parse，它会把非法行
+    // 静默丢掉，用户只会看到订阅 403，却看不出是自己写错了。
+    final headerLine = CustomHeaders.firstInvalidLine(
+      _customHeadersController.text,
+    );
+    if (headerLine != null) {
+      return (
+        field: _ProfileField.customHeaders,
+        message: appLocalizations.customHeadersInvalid(headerLine),
       );
     }
     return null;
@@ -381,17 +392,12 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
               ),
               FormRow(
                 title: appLocalizations.customHeaders,
-                trailing: TextField(
+                invalid: issue?.field == _ProfileField.customHeaders,
+                // 复用导入页的同一个控件，避免两处各写一份多行输入框后行为漂移。
+                trailing: MultiLineHeaderField(
                   controller: _customHeadersController,
-                  keyboardType: TextInputType.multiline,
-                  minLines: 3,
-                  maxLines: 6,
-                  autocorrect: false,
-                  decoration: InputDecoration(
-                    hintText: appLocalizations.customHeadersTip,
-                    isDense: true,
-                    border: InputBorder.none,
-                  ),
+                  hintText: appLocalizations.customHeadersTip,
+                  onChanged: _handleChanged,
                 ),
               ),
             ],

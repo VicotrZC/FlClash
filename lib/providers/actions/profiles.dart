@@ -392,9 +392,13 @@ class ProfilesAction extends _$ProfilesAction {
       for (final link in links)
         if (link.isShareLink) link,
     ];
+    // 每个 profile 各拿一份拷贝：Map 是可变对象，共用同一个实例时，
+    // 任何一处改动都会串到这次批量导入的所有订阅上。
     Profile applyHeaders(Profile profile) => profile.copyWith(
       userAgent: userAgent.isEmpty ? null : userAgent,
-      customHeaders: parsedHeaders,
+      customHeaders: parsedHeaders.isEmpty
+          ? const <String, String>{}
+          : Map<String, String>.of(parsedHeaders),
     );
     await globalState.batchRun(
       [

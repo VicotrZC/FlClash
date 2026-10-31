@@ -103,6 +103,20 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
         message: appLocalizations.profileUrlInvalidValidationDesc,
       );
     }
+    // 请求头必须在这里拦下：保存时用的是 CustomHeaders.parse，它会把非法行
+    // 静默丢掉，用户只会看到订阅 403，却看不出是自己写错了。
+    //
+    // 位置很关键：必须排在下面 `if (!_autoUpdate) return null;` 之前。
+    // 否则关掉自动更新的用户会整个绕过校验 —— 而请求头与自动更新无关。
+    final headerLine = CustomHeaders.firstInvalidLine(
+      _customHeadersController.text,
+    );
+    if (headerLine != null) {
+      return (
+        field: _ProfileField.customHeaders,
+        message: appLocalizations.customHeadersInvalid(headerLine),
+      );
+    }
     if (!_autoUpdate) {
       return null;
     }
@@ -118,17 +132,6 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
         field: _ProfileField.autoUpdateInterval,
         message:
             appLocalizations.profileAutoUpdateIntervalInvalidValidationDesc,
-      );
-    }
-    // 请求头必须在这里拦下：保存时用的是 CustomHeaders.parse，它会把非法行
-    // 静默丢掉，用户只会看到订阅 403，却看不出是自己写错了。
-    final headerLine = CustomHeaders.firstInvalidLine(
-      _customHeadersController.text,
-    );
-    if (headerLine != null) {
-      return (
-        field: _ProfileField.customHeaders,
-        message: appLocalizations.customHeadersInvalid(headerLine),
       );
     }
     return null;

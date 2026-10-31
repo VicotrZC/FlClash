@@ -268,4 +268,37 @@ void main() {
     final saved = globalState.container.read(profilesProvider).single;
     expect(saved.customHeaders, {'X-Client-Encrypt': 'v1'});
   });
+
+  testWidgets('自动更新关闭时也要拦下非法请求头', (tester) async {
+    // _issue() 里有一段 `if (!_autoUpdate) return null;` 的提前返回，
+    // 曾经排在请求头校验之前 —— 于是关掉自动更新的用户完全不校验请求头，
+    // 编辑页仍然会静默丢掉写错的那一行。
+    final profile = _urlProfile().copyWith(autoUpdate: false);
+    await pumpEditProfile(
+      tester,
+      profile: profile,
+      overrides: [
+        profilesProvider.overrideWith(() => TestProfiles([profile])),
+      ],
+    );
+
+    await tester.tap(find.text('Subscription options'));
+    await tester.pumpAndSettle();
+
+    final headers = find.descendant(
+      of: find.widgetWithText(FormRow, 'Custom headers'),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(headers, 'X-Client-Encrypt v1');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Save'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Line 1 is not in Name: Value form'),
+      findsOneWidget,
+      reason: 'autoUpdate 关闭时不能绕过请求头校验',
+    );
+  });
 }

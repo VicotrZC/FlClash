@@ -67,7 +67,7 @@ Future<List<NamedUrl>?> showNamedUrlsForm(
   );
 }
 
-enum _NamedUrlField { label, url }
+enum _NamedUrlField { label, url, customHeaders }
 
 /// The url below the name holds the focus, as the one field that must be filled.
 /// Pops a list so a single url and a batch return through the same path.
@@ -186,7 +186,26 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
     if (urlError != null) {
       return (field: _NamedUrlField.url, message: urlError);
     }
+    final headerError = _customHeadersError();
+    if (headerError != null) {
+      return (field: _NamedUrlField.customHeaders, message: headerError);
+    }
     return null;
+  }
+
+  /// 校验自定义请求头，返回错误文案；全部合法时返回 null。
+  ///
+  /// 必须拦下来而不是交给 [CustomHeaders.parse] 静默跳过：被跳过的那一行
+  /// 在保存后就没了，用户只会看到订阅 403，却看不出是自己写错了。
+  String? _customHeadersError() {
+    if (!widget.withSubscriptionOptions) {
+      return null;
+    }
+    final line = CustomHeaders.firstInvalidLine(_customHeadersController.text);
+    if (line == null) {
+      return null;
+    }
+    return context.appLocalizations.customHeadersInvalid(line);
   }
 
   void _toggleBatch() {
@@ -215,22 +234,28 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
   }
 
   void _handleSubmit() {
+    final userAgent = _userAgentController.text.trim();
+    final customHeaders = _customHeadersController.text.trim();
     if (_isBatch) {
       final parsed = _parsed;
-      if (parsed == null || !parsed.isValid || parsed.entries.isEmpty) {
+      if (_customHeadersError() != null ||
+          parsed == null ||
+          !parsed.isValid ||
+          parsed.entries.isEmpty) {
         setState(() {
           _attempted = true;
         });
         return;
       }
+      // 批量导入只能填一套请求头，应用到这次导入的每个 URL 上。
       Navigator.of(context).pop<List<NamedUrl>>([
         for (final url in parsed.entries)
           (
             label: '',
             url: url,
             ageSecretKey: '',
-            userAgent: '',
-            customHeaders: '',
+            userAgent: userAgent,
+            customHeaders: customHeaders,
           ),
       ]);
       return;
@@ -246,8 +271,8 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
         label: _labelController.text.trim(),
         url: _urlController.text.trim(),
         ageSecretKey: _ageSecretKeyController.text.trim(),
-        userAgent: _userAgentController.text.trim(),
-        customHeaders: _customHeadersController.text.trim(),
+        userAgent: userAgent,
+        customHeaders: customHeaders,
       ),
     ]);
   }
@@ -256,17 +281,30 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
   Widget build(BuildContext context) {
     final appLocalizations = context.appLocalizations;
     final issue = _attempted && !_isBatch ? _issue() : null;
+    // 批量模式下没有单条字段的 issue，但请求头同样要校验并回显；
+    // 之前这里只走 batchInput.errorOf，输错的请求头永远不会被提示。
+    final String? error;
+    if (_isBatch) {
+      error = _attempted
+          ? (_customHeadersError() ??
+                _batchInput.errorOf(
+                  appLocalizations,
+                  _parsed,
+                  attempted: _attempted,
+                ))
+          : _batchInput.errorOf(
+              appLocalizations,
+              _parsed,
+              attempted: _attempted,
+            );
+    } else {
+      error = issue?.message;
+    }
     return FormPage(
       title: _isBatch ? appLocalizations.batchImport : widget.title,
       saveLabel: appLocalizations.submit,
       onSave: _handleSubmit,
-      error: _isBatch
-          ? _batchInput.errorOf(
-              appLocalizations,
-              _parsed,
-              attempted: _attempted,
-            )
-          : issue?.message,
+      error: error,
       actions: [
         if (widget.batch)
           IconButtonData(
@@ -278,14 +316,19 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
           ),
       ],
       children: [
-        _isBatch
-            ? BatchSection(
-                batch: _batchInput,
-                controller: _batchController,
-                parsed: _parsed,
-                onChanged: _handleBatchChanged,
-              )
-            : _buildFields(appLocalizations, issue?.field),
+        if (_isBatch)
+          BatchSection(
+            batch: _batchInput,
+            controller: _batchController,
+            parsed: _parsed,
+            onChanged: _handleBatchChanged,
+          )
+        else
+          _buildFields(appLocalizations, issue?.field),
+        // 批量导入同样需要请求头：vpncheap 这类机场少一个 X-Client-Encrypt
+        // 就是 403，不能要求用户导入完再逐个编辑。
+        if (widget.withSubscriptionOptions)
+          _buildSubscriptionOptions(appLocalizations, issue?.field),
       ],
     );
   }
@@ -343,48 +386,61 @@ class _NamedUrlFormState extends State<NamedUrlForm> {
               onFieldSubmitted: (_) => _handleSubmit(),
             ),
           ),
-        if (widget.withSubscriptionOptions) ...[
-          FormRow(
-            title: appLocalizations.subscriptionAdvanced,
+      ],
+    );
+  }
+
+  /// 「订阅高级选项」：每个订阅自己的 User-Agent 与请求头。
+  ///
+  /// 单条导入与批量导入都会渲染这一块；批量时这套值应用到本次导入的每个 URL。
+  Widget _buildSubscriptionOptions(
+    AppLocalizations appLocalizations,
+    _NamedUrlField? invalid,
+  ) {
+    return generateSection(
+      items: [
+        FormRow(
+          title: appLocalizations.subscriptionAdvanced,
+          onPressed: () {
+            setState(() {
+              _showAdvanced = !_showAdvanced;
+            });
+          },
+          trailing: IconButton(
+            tooltip: _showAdvanced
+                ? appLocalizations.showLess
+                : appLocalizations.showMore,
             onPressed: () {
               setState(() {
                 _showAdvanced = !_showAdvanced;
               });
             },
-            trailing: IconButton(
-              tooltip: _showAdvanced
-                  ? appLocalizations.showLess
-                  : appLocalizations.showMore,
-              onPressed: () {
-                setState(() {
-                  _showAdvanced = !_showAdvanced;
-                });
-              },
-              icon: GlyphIcon(
-                _showAdvanced ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
-                size: 18,
-              ),
+            icon: GlyphIcon(
+              _showAdvanced ? AppGlyphs.chevronUp : AppGlyphs.chevronDown,
+              size: 18,
             ),
           ),
-          if (_showAdvanced) ...[
-            FormRow(
-              title: appLocalizations.userAgent,
-              trailing: FormRowTextField(
-                controller: _userAgentController,
-                hintText: appLocalizations.optional,
-                textInputAction: TextInputAction.next,
-                autocorrect: false,
-                inputFormatters: TextInputLimits.limit(TextInputLimits.name),
-              ),
+        ),
+        if (_showAdvanced) ...[
+          FormRow(
+            title: appLocalizations.userAgent,
+            trailing: FormRowTextField(
+              controller: _userAgentController,
+              hintText: appLocalizations.optional,
+              textInputAction: TextInputAction.next,
+              autocorrect: false,
+              inputFormatters: TextInputLimits.limit(TextInputLimits.name),
             ),
-            FormRow(
-              title: appLocalizations.customHeaders,
-              trailing: MultiLineHeaderField(
-                controller: _customHeadersController,
-                hintText: appLocalizations.customHeadersTip,
-              ),
+          ),
+          FormRow(
+            title: appLocalizations.customHeaders,
+            invalid: invalid == _NamedUrlField.customHeaders,
+            trailing: MultiLineHeaderField(
+              controller: _customHeadersController,
+              hintText: appLocalizations.customHeadersTip,
+              onChanged: _handleChanged,
             ),
-          ],
+          ),
         ],
       ],
     );
@@ -397,10 +453,12 @@ class MultiLineHeaderField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.hintText,
+    this.onChanged,
   });
 
   final TextEditingController controller;
   final String hintText;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -410,6 +468,7 @@ class MultiLineHeaderField extends StatelessWidget {
       minLines: 3,
       maxLines: 6,
       autocorrect: false,
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,

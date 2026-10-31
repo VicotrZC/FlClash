@@ -31,8 +31,11 @@ class _RecordingProfilesAction extends ProfilesAction {
   }
 
   @override
-  Future<void> addProfilesFromLinks(List<String> links) async =>
-      batches.add(links);
+  Future<void> addProfilesFromLinks(
+    List<String> links, {
+    String userAgent = '',
+    String customHeaders = '',
+  }) async => batches.add(links);
 }
 
 Finder _field(String title) => find.descendant(

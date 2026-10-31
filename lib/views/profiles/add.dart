@@ -77,10 +77,14 @@ class AddProfileMenu extends ConsumerWidget {
           ),
         );
       default:
+        // 批量导入也带请求头：一套值应用到本次导入的所有 URL。
+        // 所有条目共用同一份输入，取第一条即可。
         unawaited(
-          profilesAction.addProfilesFromLinks([
-            for (final item in res) item.url,
-          ]),
+          profilesAction.addProfilesFromLinks(
+            [for (final item in res) item.url],
+            userAgent: res.first.userAgent,
+            customHeaders: res.first.customHeaders,
+          ),
         );
     }
   }

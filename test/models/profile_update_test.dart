@@ -167,5 +167,38 @@ void main() {
       expect(text, contains('hysteria2'));
       expect(text, isNot(contains('"outbounds"')));
     });
+
+    test('gzip 过的 sing-box JSON 也能转成 Clash YAML', () async {
+      const jsonText =
+          '{"outbounds":[{"type":"hysteria2","tag":"HK","server":"192.0.2.1",'
+          '"server_port":443,"password":"pw"}]}';
+      // 客户端必须按 解密 -> 解压 -> 转换 的顺序处理。之前转换排在解压前面，
+      // gzip 过的 JSON 解析失败、转换被跳过，最后把 sing-box JSON 原样交给
+      // mihomo 而报错。
+      //
+      // 注意这里刻意用「未加密」的 gzip：decrypt 对明文做严格 UTF-8 校验
+      // （真实载荷都是文本），加密后再 gzip 的二进制不在支持范围内。
+      request.clashAdapter = _StubAdapter(
+        body: Uint8List.fromList(gzip.encode(utf8.encode(jsonText))),
+        headers: const {},
+      );
+
+      Uint8List? seen;
+      final profile = Profile.normal(
+        label: 'p',
+        url: 'https://example.test/sub',
+      );
+      await profile.update(
+        validate: (path, _) async {
+          seen = File(path).readAsBytesSync();
+          return '';
+        },
+      );
+
+      final text = utf8.decode(seen!);
+      expect(text, contains('proxies:'));
+      expect(text, contains('hysteria2'));
+      expect(text, isNot(contains('"outbounds"')));
+    });
   });
 }

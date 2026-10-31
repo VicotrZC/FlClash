@@ -196,14 +196,14 @@ extension ProfileExtension on Profile {
     );
     final disposition = response.headers.value('content-disposition');
     final userinfo = response.headers.value('subscription-userinfo');
-    var data = response.data ?? Uint8List(0);
-    // 机场可能对正文加密（响应头 X-Encrypted: 1），先解密再交给 mihomo。
-    // 注意这里取的是响应头的**名字**，不是它的值。
-    data = SubscriptionCrypto.decryptIfNeeded(
-      data,
+    // 顺序固定为：解密 -> 解压 -> sing-box 转换 -> 交给 mihomo。
+    // 之前转换排在解压前面，gzip 过的 sing-box JSON 会解析失败而被原样放过。
+    var data = SubscriptionCrypto.decryptIfNeeded(
+      response.data ?? Uint8List(0),
+      // 取响应头的**名字**而不是它的值，否则会把 '1' 当成头名。
       response.headers.value(SubscriptionCrypto.encryptedHeaderKey),
     );
-    // 部分机场下发 sing-box JSON；mihomo 读不懂，先转成 Clash YAML。
+    data = decompressUnlabeled(data);
     final converted = singBoxJsonToClashYaml(data);
     if (converted != null) {
       data = converted;
@@ -214,7 +214,7 @@ extension ProfileExtension on Profile {
         defaultLabel,
       ]),
       subscriptionInfo: SubscriptionInfo.formHString(userinfo),
-    ).saveFile(decompressUnlabeled(data), validate: validate);
+    ).saveFile(data, validate: validate);
   }
 
   Future<Profile> saveFile(

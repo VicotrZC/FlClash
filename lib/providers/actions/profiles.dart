@@ -378,19 +378,34 @@ class ProfilesAction extends _$ProfilesAction {
 
   /// Ids are taken up front so the list keeps the order of [links]; the share
   /// links among them make up one profile, in the place of the first.
-  Future<void> addProfilesFromLinks(List<String> links) async {
+  ///
+  /// [userAgent] 与 [customHeaders] 应用到本次导入的每个订阅：批量导入只有一个
+  /// 输入框，而像 vpncheap 这类机场少了 `X-Client-Encrypt` 就会 403。
+  Future<void> addProfilesFromLinks(
+    List<String> links, {
+    String userAgent = '',
+    String customHeaders = '',
+  }) async {
     _showProfiles();
+    final parsedHeaders = CustomHeaders.parse(customHeaders);
     final shareLinks = [
       for (final link in links)
         if (link.isShareLink) link,
     ];
+    Profile applyHeaders(Profile profile) => profile.copyWith(
+      userAgent: userAgent.isEmpty ? null : userAgent,
+      customHeaders: parsedHeaders,
+    );
     await globalState.batchRun(
       [
         for (final link in links)
           if (!link.isShareLink)
-            (profile: Profile.normal(url: link), shareLinks: const <String>[])
+            (
+              profile: applyHeaders(Profile.normal(url: link)),
+              shareLinks: const <String>[],
+            )
           else if (link == shareLinks.first)
-            (profile: Profile.normal(), shareLinks: shareLinks),
+            (profile: applyHeaders(Profile.normal()), shareLinks: shareLinks),
       ],
       (item) async => putProfile(
         await (item.shareLinks.isEmpty

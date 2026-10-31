@@ -301,4 +301,43 @@ void main() {
       reason: 'autoUpdate 关闭时不能绕过请求头校验',
     );
   });
+
+  testWidgets('编辑页请求头报错时自动展开高级选项', (tester) async {
+    // 导入页在报错时会把折叠的高级选项展开，否则用户只看到一句
+    // 「第 N 行格式不对」却找不到那个输入框。编辑页曾经漏了这一步。
+    final profile = _urlProfile();
+    await pumpEditProfile(
+      tester,
+      profile: profile,
+      overrides: [
+        profilesProvider.overrideWith(() => TestProfiles([profile])),
+      ],
+    );
+
+    // 展开 -> 写错 -> 再折叠回去
+    await tester.tap(find.text('Subscription options'));
+    await tester.pumpAndSettle();
+    final headers = find.descendant(
+      of: find.widgetWithText(FormRow, 'Custom headers'),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(headers, 'X-Client-Encrypt v1');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Subscription options'));
+    await tester.pumpAndSettle();
+
+    // 折叠后内层字段应当已经不在了，作为对照
+    expect(find.text('Custom headers'), findsNothing);
+
+    await tester.tap(find.byTooltip('Save'));
+    await tester.pumpAndSettle();
+
+    // 报错后必须自动展开，用户才找得到那个输入框
+    expect(
+      find.text('Custom headers'),
+      findsOneWidget,
+      reason: '请求头报错时要自动展开高级选项，否则错误指向一个看不见的字段',
+    );
+    expect(find.text('Line 1 is not in Name: Value form'), findsOneWidget);
+  });
 }

@@ -144,9 +144,15 @@ class _EditProfileViewState extends ConsumerState<EditProfileView> {
   }
 
   Future<void> _handleConfirm() async {
-    if (_issue(context.appLocalizations) != null) {
+    final issue = _issue(context.appLocalizations);
+    if (issue != null) {
       setState(() {
         _attempted = true;
+        // 请求头报错时把高级选项展开，否则错误指向一个看不见的输入框。
+        // 导入页已经这么做了，这里之前漏掉，用户只看到一句「第 N 行格式不对」。
+        if (issue.field == _ProfileField.customHeaders) {
+          _showAdvanced = true;
+        }
       });
       return;
     }
